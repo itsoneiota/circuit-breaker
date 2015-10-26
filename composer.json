@@ -1,0 +1,26 @@
+{
+	"name":"itsoneiota/circuit-breaker",
+	"description": "One iota Circuit Breaker",
+	"type":"library",
+    "keywords": ["Circuit Breaker"],
+    "homepage": "http://itsoneiota.com",
+    "authors": [
+        {
+            "name": "Ross McFarlane",
+            "email": "ross.mcfarlane@itsoneiota.com"
+        }
+    ],
+    "license":"proprietary",
+	"require":{
+		"php":">=5.4",
+        "itsoneiota/cache": "*@dev"
+	},
+	"require-dev":{
+		"phpunit/phpunit": "*"
+	},
+	"autoload": {
+        "psr-4": {
+            "itsoneiota\\circuitbreaker\\": "src/"
+        }
+    }
+}
