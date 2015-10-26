@@ -32,7 +32,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canDetectFailureRate() {
-		$this->assertTrue($this->sut->isClosed($currentTime));
+		$this->assertTrue($this->sut->isClosed());
 
 		$this->sut->registerFailure();
 
