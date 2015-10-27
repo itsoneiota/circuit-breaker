@@ -175,7 +175,7 @@ class CircuitBreaker {
 		$results = $this->cache->get([$successesKey, $failuresKey, $rejectionsKey]);
 		$successes = NULL === $results[$successesKey] ? 0 : $results[$successesKey];
 		$failures = NULL === $results[$failuresKey] ? 0 : $results[$failuresKey];
-		$rejections = $results[$rejectionsKey];
+		$rejections = NULL === $results[$rejectionsKey] ? 0 : $results[$rejectionsKey];
 
 		$totalRequests = $successes + $failures;
 		$failureRate = $totalRequests == 0 ? 0 : round(($failures/$totalRequests)*100);
