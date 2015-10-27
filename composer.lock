@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "b993d0debd6b814e632a01863a3639b7",
-    "content-hash": "19bb1741b446ec9a59c7edd108d9b4d4",
+    "hash": "dc96960066eefb6134a308ff5c74645b",
+    "content-hash": "0dfa69e412d7a07da3e21732d6f50ad5",
     "packages": [
         {
             "name": "itsoneiota/cache",
@@ -13,12 +13,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/itsoneiota/cache.git",
-                "reference": "0b7f4a7c978b79fbcf0536331bb564678cb910d4"
+                "reference": "d1b4961224649636379698cb5ecbe3c2f135f571"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/itsoneiota/cache/zipball/0b7f4a7c978b79fbcf0536331bb564678cb910d4",
-                "reference": "0b7f4a7c978b79fbcf0536331bb564678cb910d4",
+                "url": "https://api.github.com/repos/itsoneiota/cache/zipball/d1b4961224649636379698cb5ecbe3c2f135f571",
+                "reference": "d1b4961224649636379698cb5ecbe3c2f135f571",
                 "shasum": ""
             },
             "require": {
@@ -48,7 +48,7 @@
             "keywords": [
                 "cache"
             ],
-            "time": "2015-10-24 10:36:30"
+            "time": "2015-10-27 10:32:01"
         }
     ],
     "packages-dev": [
@@ -1012,7 +1012,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=5.3.5"
+        "php": ">=5.4"
     },
     "platform-dev": []
 }

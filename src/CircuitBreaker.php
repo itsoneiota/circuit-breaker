@@ -8,6 +8,13 @@ class CircuitBreaker {
 	const DYNAMICS_DETERMINISTIC = 0;
 	const DYNAMICS_PROBABILISTIC = 1;
 
+	const RECOVERY_RATE = 2;
+	const THROTTLE_SNAPBACK = 80; // Percentage throttle beyond which will the circuit will 'snap' back to fully closed.
+
+	const EVENT_SUCCESS = 'success';
+	const EVENT_FAILURE = 'failure';
+	const EVENT_REJECTION = 'rejection';
+
 	protected $serviceName;
 	protected $cache;
 	protected $timeProvider;
@@ -60,8 +67,7 @@ class CircuitBreaker {
 	 * @return void
 	 */
 	public function registerSuccess() {
-		$timeStamp = $this->timeProvider->time();
-		$this->cache->increment($this->getSuccessesCacheKey($timeStamp),1,1);
+		$this->registerEvent(self::EVENT_SUCCESS);
 	}
 
 	/**
@@ -70,8 +76,35 @@ class CircuitBreaker {
 	 * @return void
 	 */
 	public function registerFailure() {
+		$this->registerEvent(self::EVENT_FAILURE);
+	}
+
+	/**
+	 * Register a failed request to the service.
+	 *
+	 * @return void
+	 */
+	public function registerRejection() {
+		$this->registerEvent(self::EVENT_REJECTION);
+	}
+
+	protected function registerEvent($event){
 		$timeStamp = $this->timeProvider->time();
-		$this->cache->increment($this->getFailuresCacheKey($timeStamp),1,1);
+		switch ($event) {
+			case self::EVENT_SUCCESS:
+				$key = $this->getSuccessesCacheKey($timeStamp);
+				break;
+			case self::EVENT_FAILURE:
+				$key = $this->getFailuresCacheKey($timeStamp);
+				break;
+			case self::EVENT_REJECTION:
+				$key = $this->getRejectionsCacheKey($timeStamp);
+				break;
+			default:
+				throw new \InvalidArgumentException('Unrecognised event: '.$event);
+				break;
+		}
+		$this->cache->increment($key,1,1);
 	}
 
 	/**
@@ -81,51 +114,81 @@ class CircuitBreaker {
 	 */
 	public function isClosed() {
 		$resultsForPreviousPeriod = $this->getResultsForPreviousPeriod();
-
-		return $this->isOperatingNormally($resultsForPreviousPeriod) || $this->isRecovering($resultsForPreviousPeriod);
+		if($this->isOperatingNormally($resultsForPreviousPeriod)){
+			return TRUE;
+		}else{
+			return $this->tripResponse($resultsForPreviousPeriod);
+		}
 	}
 
 	protected function isOperatingNormally($results) {
-		return
-			$results['totalRequests'] < $this->minimumRequestsBeforeTrigger ||
-			$results['failureRate'] < $this->percentageFailureThreshold;
+		$insufficientRequests = $results['totalRequests'] < $this->minimumRequestsBeforeTrigger;
+		$failureRateBelowThreshold = $results['failureRate'] < $this->percentageFailureThreshold;
+		$recovering = $results['throttle'] < 100;
+		return $insufficientRequests || ($failureRateBelowThreshold && !$recovering);
 	}
 
 	/**
-	 * Is the circuit recovering?
+	 * How should we respond to a tripped circuit?
 	 * If the circuit is open and dynamics have been sent to probabilistic,
 	 * this method will return true with the same probability as a successful request in the previous period.
 	 *
 	 * e.g. If, in the last period, 10% of requests were successful, this method will return TRUE
 	 * on approximately 1 in 10 calls.
 	 *
+	 * If the circuit dynamics are deterministic, the circuit will be open.
+	 *
 	 * @param array $resultsForPreviousPeriod Results from the previous time period.
-	 * @return void
+	 * @return boolean
 	 */
-	protected function isRecovering($resultsForPreviousPeriod) {
-		return $this->isProbabilistic ? rand(0,100) > $resultsForPreviousPeriod['failureRate'] : FALSE;
+	protected function tripResponse($prev) {
+		if(!$this->isProbabilistic){
+			return FALSE;
+		}
+		$successRate = 100-$prev['failureRate'];
+
+		// Don't suddenly increase the throttle just because a limited number of requests succeeded.
+		$threshold = min($successRate, ($prev['throttle'] * self::RECOVERY_RATE));
+
+		if($threshold > self::THROTTLE_SNAPBACK){
+			return TRUE;
+		}
+		$result = rand(0,100) < $threshold;
+		return $result;
 	}
 
-	protected function getResultsForPreviousPeriod() {
+	public function getResultsForPreviousPeriod() {
 		$timeStamp = $this->timeProvider->time();
 		$results = [
 			'successes'=>0,
 			'failures'=>0,
+			'rejections'=>0,
 			'totalRequests'=>0,
-			'failureRate'=>0
+			'failureRate'=>0,
+			'throttle'=>100
 		];
 
 		$previousPeriod = $timeStamp - $this->samplePeriod;
-		$successes = $this->cache->get($this->getSuccessesCacheKey($previousPeriod));
-		$failures = $this->cache->get($this->getFailuresCacheKey($previousPeriod));
+		$successesKey = $this->getSuccessesCacheKey($previousPeriod);
+		$failuresKey = $this->getFailuresCacheKey($previousPeriod);
+		$rejectionsKey = $this->getRejectionsCacheKey($previousPeriod);
+		$results = $this->cache->get([$successesKey, $failuresKey, $rejectionsKey]);
+		$successes = NULL === $results[$successesKey] ? 0 : $results[$successesKey];
+		$failures = NULL === $results[$failuresKey] ? 0 : $results[$failuresKey];
+		$rejections = $results[$rejectionsKey];
 
 		$totalRequests = $successes + $failures;
 		$failureRate = $totalRequests == 0 ? 0 : round(($failures/$totalRequests)*100);
+		$totalAttempts = $totalRequests + $rejections;
+		$throttle = $totalAttempts == 0 ? 100 : 100-round(($rejections/$totalAttempts)*100);
+
 		return [
 			'successes'=>$successes,
 			'failures'=>$failures,
+			'rejections'=>$rejections,
 			'totalRequests'=>$totalRequests,
-			'failureRate'=>$failureRate
+			'failureRate'=>$failureRate,
+			'throttle'=>$throttle
 		];
 	}
 
@@ -143,6 +206,10 @@ class CircuitBreaker {
 
 	protected function getFailuresCacheKey($timeStamp) {
 		return $this->getCacheName($timeStamp) . '.failures';
+	}
+
+	protected function getRejectionsCacheKey($timeStamp) {
+		return $this->getCacheName($timeStamp) . '.rejections';
 	}
 
 }
