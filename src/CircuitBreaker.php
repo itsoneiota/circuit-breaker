@@ -5,10 +5,6 @@ namespace itsoneiota\circuitbreaker;
  */
 class CircuitBreaker {
 
-	const DYNAMICS_DETERMINISTIC = 0;
-	const DYNAMICS_PROBABILISTIC = 1;
-
-	const RECOVERY_RATE = 2;
 	const THROTTLE_SNAPBACK = 80; // Percentage throttle beyond which will the circuit will 'snap' back to fully closed.
 
 	const EVENT_SUCCESS = 'success';
@@ -24,6 +20,7 @@ class CircuitBreaker {
 	protected $percentageFailureThreshold = 50;
 	protected $minimumRequestsBeforeTrigger = 3;
 	protected $isProbabilistic = FALSE;
+	protected $recoveryFactor = 2;
 
 	/**
 	 * Constructor
@@ -43,30 +40,62 @@ class CircuitBreaker {
 		$this->cache = $cache;
 		$this->timeProvider = $timeProvider;
 
-		// TODO: Validate keys
 		$configKeys = [
 			'enabled',
 			'samplePeriod',
 			'percentageFailureThreshold',
-			'minimumRequestsBeforeTrigger'
+			'minimumRequestsBeforeTrigger',
+			'probabilisticDynamics',
+			'recoveryFactor'
 		];
 		foreach ($configKeys as $key) {
 			if (array_key_exists($key, $config)) {
-				$this->{$key} = $config[$key];
+				$method = 'set'. ucfirst($key);
+				$this->$method($config[$key]);
 			}
 		}
 	}
 
-	/**
-	 * Set the dynamics properties of the switch.
-	 *
-	 * Currently, only self::DYNAMICS_PROBABILISTIC.
-	 *
-	 * @param int $options Bitmask of DYNAMICS_* constants.
-	 * @return void
-	 */
-	public function setDynamics($options) {
-		$this->isProbabilistic = $options & self::DYNAMICS_PROBABILISTIC;
+	public function setEnabled($enabled) {
+		if(!is_bool($enabled)){
+			throw new \InvalidArgumentException('enabled must be boolean.');
+		}
+		$this->enabled = $enabled;
+	}
+
+	public function setSamplePeriod($samplePeriod) {
+		if(!is_int($samplePeriod)){
+			throw new \InvalidArgumentException('samplePeriod must be an int.');
+		}
+		$this->samplePeriod = $samplePeriod;
+	}
+
+	public function setPercentageFailureThreshold($percentageFailureThreshold) {
+		if(!is_int($percentageFailureThreshold)){
+			throw new \InvalidArgumentException('percentageFailureThreshold must be an int.');
+		}
+		$this->percentageFailureThreshold = $percentageFailureThreshold;
+	}
+
+	public function setMinimumRequestsBeforeTrigger($minimumRequestsBeforeTrigger) {
+		if(!is_int($minimumRequestsBeforeTrigger)){
+			throw new \InvalidArgumentException('minimumRequestsBeforeTrigger must be an int.');
+		}
+		$this->minimumRequestsBeforeTrigger = $minimumRequestsBeforeTrigger;
+	}
+
+	public function setProbabilisticDynamics($probabilistic) {
+		if(!is_bool($probabilistic)){
+			throw new \InvalidArgumentException('probabilistic must be boolean.');
+		}
+		$this->isProbabilistic = $probabilistic;
+	}
+
+	public function setRecoveryFactor($recoveryFactor) {
+		if(!is_numeric($recoveryFactor) || $recoveryFactor <= 1){
+			throw new \InvalidArgumentException('recoveryFactor must be a number >1.');
+		}
+		$this->recoveryFactor = $recoveryFactor;
 	}
 
 	/**
@@ -159,7 +188,7 @@ class CircuitBreaker {
 		$successRate = 100-$prev['failureRate'];
 
 		// Don't suddenly increase the throttle just because a limited number of requests succeeded.
-		$threshold = min($successRate, ($prev['throttle'] * self::RECOVERY_RATE));
+		$threshold = min($successRate, ($prev['throttle'] * $this->recoveryFactor));
 
 		if($threshold > self::THROTTLE_SNAPBACK){
 			return TRUE;

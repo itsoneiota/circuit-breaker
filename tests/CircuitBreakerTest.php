@@ -139,7 +139,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canCloseProbably() {
-		$this->sut->setDynamics(CircuitBreaker::DYNAMICS_PROBABILISTIC);
+		$this->sut->setProbabilisticDynamics(TRUE);
 
 		$this->assertTrue($this->sut->isClosed());
 
@@ -176,8 +176,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canLimitClosingDynamics() {
-		// var_dump($this->sut->getResultsForPreviousPeriod());
-		$this->sut->setDynamics(CircuitBreaker::DYNAMICS_PROBABILISTIC);
+		$this->sut->setProbabilisticDynamics(TRUE);
 		$this->assertTrue($this->sut->isClosed());
 
 		$this->registerRequests([
@@ -206,6 +205,40 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->assertApproximateThrottle(80);
 
 		$this->timeProvider->set(250);
+		$this->assertApproximateThrottle(100);
+	}
+
+	/**
+	 * It should alter the recovery dynamics.
+	 * @test
+	 */
+	public function canAlterRecoveryDynamics() {
+		$this->sut->setProbabilisticDynamics(TRUE);
+		$this->sut->setRecoveryFactor(4);
+		$this->assertTrue($this->sut->isClosed());
+
+		$this->registerRequests([
+			1 => FALSE,
+			2 => FALSE,
+			3 => FALSE,
+			4 => FALSE,
+			5 => FALSE,
+			6 => FALSE,
+			7 => FALSE,
+			8 => FALSE,
+			9 => TRUE,
+			10 => TRUE
+		]);
+
+		// Next sample period. Previous period should be complete, with 80% failures.
+		$this->timeProvider->set(65);
+		$this->assertApproximateThrottle(20);
+
+		// Throttle shouldn't exceed 80 in the next period, because it's 20% * 4.
+		$this->timeProvider->set(130);
+		$this->assertApproximateThrottle(80);
+
+		$this->timeProvider->set(190);
 		$this->assertApproximateThrottle(100);
 	}
 

@@ -51,14 +51,26 @@ So, let's say we're calling a remote service, and we want to protect ourselves f
 		return $response;
 	}
 
-Configuration
--------------
+### Configuration
 The fourth constructor argument takes an array of configuration parameters. Allowed keys are listed below. Other keys will be ignored.
 
-- `enabled` (default `TRUE`)
-- `samplePeriod` (default 60)
-- `percentageFailureThreshold` (default 50)
-- `minimumRequestsBeforeTrigger` (default 3)
+#### `enabled` (default `TRUE`)
+Turns the circuit breaker on, allowing it to trip in response to excessive failed requests.
+
+#### `samplePeriod` (default 60)
+The period of time, in seconds, over which successes and failures are aggregated before a decision is made.
+
+#### `minimumRequestsBeforeTrigger` (default 3)
+The minimum number of requests that must be made before the circuit will commit to a decision.
+
+#### `percentageFailureThreshold` (default 50)
+The percentage failure rate that will trigger the circuit to trip.
+
+#### `probabilisticDynamics` (default `FALSE`)
+Dynamics of the breaker when tripped. If `FALSE`, the circuit will open completely, allowing no traffic through for a full period. If `TRUE`, the circuit will allow a proportionate number of requests through, and steadily increase the number of requests made over subsequent periods.
+
+#### `recoveryFactor` (default 2)
+The rate at which throttling relaxes in subsequent periods. See _Recovery Dynamics_, below.
 
 Open or Closed?
 ---------------
@@ -73,13 +85,14 @@ Probably Closed?
 
 If a dependency is liable to fall over completely, then a binary open/closed state will suit quite well. If a dependency sometimes becomes unreliable under load without completely failing, we can throttle our requests to it until it gets back on its feet. To help with these circumstances, we can allow the circuit to be open probabilistically, based on the success rate in the previous sample period.
 
-To set probabilistic dynamics call:
-
-	$cb->setDynamics(CircuitBreaker::DYNAMICS_PROBABILISTIC);
+To set probabilistic, set the `probabilisticDynamics` config value to `TRUE`, or call `setProbabilisticDynamics()` with a value of `TRUE`.
 
 Now, `isClosed()` will return `TRUE` in all the usual cases. If the trip conditions have been met, `isClosed()` will now return TRUE with a probability equal to the success rate from the previous period.
 
 For example, let's say we make 100 requests to a dependency in one period. but only 20 succeed. With probabilistic dynamics, `isClosed()` will return `TRUE` approximately 20% of the time.
+
+### Recovery Dynamics
+So that the circuit doesn't 'snap' closed straight away, the dynamics will increase the throttle steadily from one period to the next. The spead of recovery can be set using the `recoveryFactor` config value. For example, after a period with an 80% failure rate, only 20% of requests will be allowed through. If all of the requests allowed through the circuit are successful, there will be 20% * `recoveryFactor` requests allowed through in the next period. Recovery is capped to the lesser of the success rate in the previous period, and the throttle * `recoveryFactor`.
 
 The Time Provider
 -----------------
