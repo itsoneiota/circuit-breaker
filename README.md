@@ -51,6 +51,15 @@ So, let's say we're calling a remote service, and we want to protect ourselves f
 		return $response;
 	}
 
+Configuration
+-------------
+The fourth constructor argument takes an array of configuration parameters. Allowed keys are listed below. Other keys will be ignored.
+
+- `enabled` (default `TRUE`)
+- `samplePeriod` (default 60)
+- `percentageFailureThreshold` (default 50)
+- `minimumRequestsBeforeTrigger` (default 3)
+
 Open or Closed?
 ---------------
 The circuit is closed by default.

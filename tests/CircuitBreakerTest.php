@@ -59,6 +59,30 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	}
 
 	/**
+	 * It should be disabled by default.
+	 * @test
+	 */
+	public function canDisableButStillRecordMetrics() {
+		$this->sut = new CircuitBreaker('myService', $this->cache, $this->timeProvider, ['enabled'=>FALSE]);
+		$this->assertTrue($this->sut->isClosed());
+
+		$this->sut->registerFailure();
+
+		$this->timeProvider->set($this->startTime + 30);
+		$this->sut->registerSuccess();
+
+		$this->timeProvider->set($this->startTime + 59);
+		$this->sut->registerFailure();
+
+		// Next sample period. Previous period should be complete, with 2/3 failures.
+		$this->timeProvider->set($this->startTime + 60);
+		$this->assertTrue($this->sut->isClosed());
+
+		$enabledClone = new CircuitBreaker('myService', $this->cache, $this->timeProvider);
+		$this->assertFalse($enabledClone->isClosed());
+	}
+
+	/**
 	 * It should stay closed if the minimum request threshold hasn't been met.
 	 * @test
 	 */
@@ -81,7 +105,10 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canStayClosedIfCustomMinimumRequestThresholdNotMet() {
-		$this->sut = new CircuitBreaker('myService', $this->cache, $this->timeProvider, 60, 50, 5);
+		$config = [
+			'minimumRequestsBeforeTrigger'=>5
+		];
+		$this->sut = new CircuitBreaker('myService', $this->cache, $this->timeProvider, $config);
 
 		$this->assertTrue($this->sut->isClosed());
 

@@ -18,9 +18,11 @@ class CircuitBreaker {
 	protected $serviceName;
 	protected $cache;
 	protected $timeProvider;
-	protected $samplePeriod;
-	protected $percentageFailureThreshold;
-	protected $minimumRequestsBeforeTrigger;
+
+	protected $enabled = TRUE;
+	protected $samplePeriod = 60;
+	protected $percentageFailureThreshold = 50;
+	protected $minimumRequestsBeforeTrigger = 3;
 	protected $isProbabilistic = FALSE;
 
 	/**
@@ -29,24 +31,30 @@ class CircuitBreaker {
 	 * @param string $serviceName Name of the service. Used in cache keys.
 	 * @param itsoneiota\cache\Cache $cache Cache used to persist the state.
 	 * @param itsoneiota\circuitbreaker\time\TimeProvider $timeProvider Time provider.
-	 * @param int $samplePeriod The period of time, in seconds, over which successes/failures will be aggregated.
-	 * @param int $percentageFailureThreshold Percentage of requests in a sample period that must fail in order to open the circuit.
-	 * @param int $minimumRequestsBeforeTrigger The minimum request count needed to trigger a break.
+	 * @param array $config Configuration array. Allowed keys: enabled, samplePeriod, percentageFailureThreshold, minimumRequestsBeforeTrigger.
 	 */
 	public function __construct(
 		$serviceName,
 		\itsoneiota\cache\Cache $cache,
 		time\TimeProvider $timeProvider,
-		$samplePeriod=60,
-		$percentageFailureThreshold=50,
-		$minimumRequestsBeforeTrigger=3
+		array $config = []
 	) {
 		$this->serviceName = $serviceName;
 		$this->cache = $cache;
 		$this->timeProvider = $timeProvider;
-		$this->samplePeriod = $samplePeriod;
-		$this->percentageFailureThreshold = $percentageFailureThreshold;
-		$this->minimumRequestsBeforeTrigger = $minimumRequestsBeforeTrigger;
+
+		// TODO: Validate keys
+		$configKeys = [
+			'enabled',
+			'samplePeriod',
+			'percentageFailureThreshold',
+			'minimumRequestsBeforeTrigger'
+		];
+		foreach ($configKeys as $key) {
+			if (array_key_exists($key, $config)) {
+				$this->{$key} = $config[$key];
+			}
+		}
 	}
 
 	/**
@@ -113,6 +121,9 @@ class CircuitBreaker {
 	 * @return void
 	 */
 	public function isClosed() {
+		if(!$this->enabled){
+			return TRUE;
+		}
 		$resultsForPreviousPeriod = $this->getResultsForPreviousPeriod();
 		if($this->isOperatingNormally($resultsForPreviousPeriod)){
 			return TRUE;
