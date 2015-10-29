@@ -103,12 +103,13 @@ class CircuitBreakerBuilder {
         return new \itsoneiota\cache\InMemoryCache();
     }
 
-    public function build(){
+    public function buildMonitor(){
         $cache = $this->buildCache();
 		$timeProvider = NULL !== $this->timeProvider ? $this->timeProvider : new SystemTimeProvider();
-		$monitor = new CircuitMonitor($this->serviceName, $cache, $timeProvider);
-		$cb = new CircuitBreaker($monitor);
+		return new CircuitMonitor($this->serviceName, $cache, $timeProvider);
+    }
 
+    protected function configureBreaker(CircuitBreaker $breaker){
         $configKeys = [
 			'enabled',
 			'percentageFailureThreshold',
@@ -120,9 +121,15 @@ class CircuitBreakerBuilder {
 			if (array_key_exists($key, $this->config)) {
 				$method = 'set'. ucfirst($key);
                 $value = $this->config[$key];
-				$cb->$method($value);
+				$breaker->$method($value);
 			}
 		}
+    }
+
+    public function build(){
+        $monitor = $this->buildMonitor();
+		$cb = new CircuitBreaker($monitor);
+        $this->configureBreaker($cb);
 
         return $cb;
     }
