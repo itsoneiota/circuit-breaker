@@ -2,6 +2,7 @@
 namespace itsoneiota\circuitbreaker;
 use \itsoneiota\cache\Cache;
 use \itsoneiota\circuitbreaker\time\TimeProvider;
+use \itsoneiota\circuitbreaker\time\SystemTimeProvider;
 
 class CircuitBreakerBuilder {
 
