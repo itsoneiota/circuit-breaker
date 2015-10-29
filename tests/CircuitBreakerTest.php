@@ -6,6 +6,8 @@ namespace itsoneiota\circuitbreaker;
  **/
 class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 
+	// TODO: Break into separate tests for monitor and breaker.
+
 	protected $sut;
 	protected $cache;
 
@@ -13,7 +15,8 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->cache = new \itsoneiota\cache\MockCache();
 		$this->startTime = 1407424500;
 		$this->timeProvider = new time\MockTimeProvider($this->startTime);
-		$this->sut = new CircuitBreaker('myService', $this->cache, $this->timeProvider);
+
+		$this->sut = CircuitBreakerBuilder::create('myService')->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
 	}
 
 	public function registerRequests(array $requests){
@@ -63,7 +66,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canDisableButStillRecordMetrics() {
-		$this->sut = new CircuitBreaker('myService', $this->cache, $this->timeProvider, ['enabled'=>FALSE]);
+		$this->sut = CircuitBreakerBuilder::create('myService')->disabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
 		$this->assertTrue($this->sut->isClosed());
 
 		$this->sut->registerFailure();
@@ -78,7 +81,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->timeProvider->set($this->startTime + 60);
 		$this->assertTrue($this->sut->isClosed());
 
-		$enabledClone = new CircuitBreaker('myService', $this->cache, $this->timeProvider);
+		$enabledClone = CircuitBreakerBuilder::create('myService')->enabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
 		$this->assertFalse($enabledClone->isClosed());
 	}
 
@@ -108,21 +111,25 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$config = [
 			'minimumRequestsBeforeTrigger'=>5
 		];
-		$this->sut = new CircuitBreaker('myService', $this->cache, $this->timeProvider, $config);
+		$this->sut = CircuitBreakerBuilder::create('myService')->withConfig($config)->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
 
 		$this->assertTrue($this->sut->isClosed());
 
 		$this->timeProvider->set(0);
 		$this->sut->registerFailure();
+		$this->assertTrue($this->sut->isClosed());
 
 		$this->timeProvider->set(30);
 		$this->sut->registerSuccess();
+		$this->assertTrue($this->sut->isClosed());
 
 		$this->timeProvider->set(58);
 		$this->sut->registerFailure();
+		$this->assertTrue($this->sut->isClosed());
 
 		$this->timeProvider->set(59);
 		$this->sut->registerFailure();
+		$this->assertTrue($this->sut->isClosed());
 
 		$this->timeProvider->set(60);
 		$this->assertTrue($this->sut->isClosed());
