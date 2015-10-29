@@ -83,6 +83,15 @@ Dynamics of the breaker when tripped. If deterministic, the circuit will open co
 #### `withRecoveryFactor($factor)` (default 2)
 The rate at which throttling relaxes in subsequent periods. See _Recovery Dynamics_, below.
 
+#### `withCache()` / `withCacheBuilder()`
+Both of these methods help to supply a `Cache` instance to the `CircuitMonitor` instance that underpins the `CircuitBreaker`. Since `CircuitBreaker` is meant to decouple your system from its external dependencies, it's important that its dependency on cache doesn't cause failures. If your app already has a working cache instance, then supplying it to `withCache()` will work just fine. If the cache instance hasn't been built yet, then it's best to supply a callback function to `withCacheBuilder()`. This allows the builder to isolate any difficulties in building the cache instance, and supply a default if there's a problem. The default will be pretty much useless, but it will help avoid a crash. Here's an example:
+
+	$cacheBuilder = function(){
+		// Do risky cache building here…
+		return $cache;
+	};
+	CircuitBreakerBuilder::create('foo')->withCacheBuilder($cacheBuilder)->build();
+
 Open or Closed?
 ---------------
 The circuit is closed by default.

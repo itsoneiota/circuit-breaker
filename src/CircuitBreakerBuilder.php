@@ -91,8 +91,9 @@ class CircuitBreakerBuilder {
         }
         if(NULL !== $this->cacheBuilder){
             try {
-                $cache = $this->cacheBuilder();
-                if(NULL !== $cache){
+                $builder = $this->cacheBuilder;
+                $cache = $builder();
+                if(is_object($cache) && is_a($cache, '\itsoneiota\cache\Cache')){
                     return $cache;
                 }
             } catch (\Exception $e) {
