@@ -32,6 +32,10 @@ class CircuitMonitor {
         $this->setSamplePeriod($samplePeriod);
 	}
 
+	public function getServiceName(){
+		return $this->serviceName;
+	}
+
 	public function setSamplePeriod($samplePeriod) {
 		if(!is_int($samplePeriod)){
 			throw new \InvalidArgumentException('samplePeriod must be an int.');
@@ -56,6 +60,19 @@ class CircuitMonitor {
 				break;
 		}
 		$this->cache->increment($key,1,1);
+	}
+
+	public function getResultsForPreviousPeriods($howMany){
+		if(!is_int($howMany) || $howMany <= 0){
+			throw new \InvalidArgumentException('howMany must be a positive integer.');
+		}
+		$timeStamp = $this->timeProvider->time();
+		$results = [];
+		for ($i=(0-$howMany); $i < 0; $i++) {
+			$period = $timeStamp + ($i*$this->samplePeriod);
+			$results[$period] = $this->getResultsForPeriod($period);
+		}
+		return $results;
 	}
 
 	public function getResultsForPreviousPeriod() {
