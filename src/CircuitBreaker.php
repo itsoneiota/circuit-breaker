@@ -5,6 +5,8 @@ namespace itsoneiota\circuitbreaker;
  */
 class CircuitBreaker {
 
+	// TODO: Inject a random number generator to make tests deterministic.
+
 	const THROTTLE_SNAPBACK = 80; // Percentage throttle beyond which will the circuit will 'snap' back to fully closed.
 
 	protected $circuitMonitor;

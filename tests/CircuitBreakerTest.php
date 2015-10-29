@@ -6,28 +6,12 @@ namespace itsoneiota\circuitbreaker;
  **/
 class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 
-	// TODO: Break into separate tests for monitor and breaker.
-
 	protected $sut;
 	protected $cache;
 
 	public function setUp() {
-		$this->cache = new \itsoneiota\cache\MockCache();
-		$this->startTime = 1407424500;
-		$this->timeProvider = new time\MockTimeProvider($this->startTime);
-
-		$this->sut = CircuitBreakerBuilder::create('myService')->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
-	}
-
-	public function registerRequests(array $requests){
-		foreach ($requests as $time => $success) {
-			$this->timeProvider->set($time);
-			if ($success) {
-				$this->sut->registerSuccess();
-			}else{
-				$this->sut->registerFailure();
-			}
-		}
+		$this->circuitMonitor = new MockCircuitMonitor();
+		$this->sut = new CircuitBreaker($this->circuitMonitor);
 	}
 
 	/**
@@ -35,29 +19,74 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canStayClosedGivenNoInput() {
+		// Mock CM returns no requests by default.
 		$this->assertTrue($this->sut->isClosed());
+	}
 
-		$this->timeProvider->advance(60); // Next minute.
-		$this->assertTrue($this->sut->isClosed());
+	/**
+	 * It should register events with the CM.
+	 * @test
+	 */
+	public function canRegisterEvents() {
+		$this->sut->registerSuccess();
+		$this->sut->registerSuccess();
+		$this->sut->registerSuccess();
+
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+
+		$this->sut->registerRejection();
+		$this->sut->registerRejection();
+
+		$this->assertEquals(3, $this->circuitMonitor->events[CircuitMonitor::EVENT_SUCCESS]);
+		$this->assertEquals(5, $this->circuitMonitor->events[CircuitMonitor::EVENT_FAILURE]);
+		$this->assertEquals(2, $this->circuitMonitor->events[CircuitMonitor::EVENT_REJECTION]);
+	}
+
+	/**
+	 * It should register events with the CM, even when disabled.
+	 * @test
+	 */
+	public function canRegisterEventsWhenDisabled() {
+		$this->sut->setEnabled(FALSE);
+
+		$this->sut->registerSuccess();
+		$this->sut->registerSuccess();
+		$this->sut->registerSuccess();
+
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+		$this->sut->registerFailure();
+
+		$this->sut->registerRejection();
+		$this->sut->registerRejection();
+
+		$this->assertEquals(3, $this->circuitMonitor->events[CircuitMonitor::EVENT_SUCCESS]);
+		$this->assertEquals(5, $this->circuitMonitor->events[CircuitMonitor::EVENT_FAILURE]);
+		$this->assertEquals(2, $this->circuitMonitor->events[CircuitMonitor::EVENT_REJECTION]);
 	}
 
 	/**
 	 * It should detect a failure rate and open the switch.
 	 * @test
 	 */
-	public function canDetectFailureRate() {
+	public function canOpenWithFailure() {
 		$this->assertTrue($this->sut->isClosed());
 
-		$this->sut->registerFailure();
+		$this->circuitMonitor->previousResults = [
+			'successes'=>4,
+			'failures'=>6,
+			'rejections'=>0,
+			'totalRequests'=>10,
+			'failureRate'=>60,
+			'throttle'=>100
+		];
 
-		$this->timeProvider->set($this->startTime + 30);
-		$this->sut->registerSuccess();
-
-		$this->timeProvider->set($this->startTime + 59);
-		$this->sut->registerFailure();
-
-		// Next sample period. Previous period should be complete, with 2/3 failures.
-		$this->timeProvider->set($this->startTime + 60);
 		$this->assertFalse($this->sut->isClosed());
 	}
 
@@ -65,24 +94,18 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * It should be disabled by default.
 	 * @test
 	 */
-	public function canDisableButStillRecordMetrics() {
-		$this->sut = CircuitBreakerBuilder::create('myService')->disabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
+	public function canStayClosedWhenDisabled() {
+		$this->circuitMonitor->previousResults = [
+			'successes'=>4,
+			'failures'=>6,
+			'rejections'=>0,
+			'totalRequests'=>10,
+			'failureRate'=>60,
+			'throttle'=>100
+		];
+		$this->assertFalse($this->sut->isClosed());
+		$this->sut->setEnabled(FALSE);
 		$this->assertTrue($this->sut->isClosed());
-
-		$this->sut->registerFailure();
-
-		$this->timeProvider->set($this->startTime + 30);
-		$this->sut->registerSuccess();
-
-		$this->timeProvider->set($this->startTime + 59);
-		$this->sut->registerFailure();
-
-		// Next sample period. Previous period should be complete, with 2/3 failures.
-		$this->timeProvider->set($this->startTime + 60);
-		$this->assertTrue($this->sut->isClosed());
-
-		$enabledClone = CircuitBreakerBuilder::create('myService')->enabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
-		$this->assertFalse($enabledClone->isClosed());
 	}
 
 	/**
@@ -90,16 +113,14 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canStayClosedIfDefaultMinimumRequestThresholdNotMet() {
-		$currentTime = 1407424500; // Start of a minute.
-
-		$this->assertTrue($this->sut->isClosed());
-
-		$this->sut->registerFailure();
-
-		$this->timeProvider->set($this->startTime + 59);
-		$this->sut->registerFailure();
-
-		$this->timeProvider->set($this->startTime + 60);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>0,
+			'failures'=>2,
+			'rejections'=>0,
+			'totalRequests'=>2,
+			'failureRate'=>100,
+			'throttle'=>100
+		];
 		$this->assertTrue($this->sut->isClosed());
 	}
 
@@ -108,36 +129,24 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canStayClosedIfCustomMinimumRequestThresholdNotMet() {
-		$config = [
-			'minimumRequestsBeforeTrigger'=>5
+		$this->sut->setMinimumRequestsBeforeTrigger(5);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>0,
+			'failures'=>4,
+			'rejections'=>0,
+			'totalRequests'=>4,
+			'failureRate'=>100,
+			'throttle'=>100
 		];
-		$this->sut = CircuitBreakerBuilder::create('myService')->withConfig($config)->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
-
 		$this->assertTrue($this->sut->isClosed());
-
-		$this->timeProvider->set(0);
-		$this->sut->registerFailure();
-		$this->assertTrue($this->sut->isClosed());
-
-		$this->timeProvider->set(30);
-		$this->sut->registerSuccess();
-		$this->assertTrue($this->sut->isClosed());
-
-		$this->timeProvider->set(58);
-		$this->sut->registerFailure();
-		$this->assertTrue($this->sut->isClosed());
-
-		$this->timeProvider->set(59);
-		$this->sut->registerFailure();
-		$this->assertTrue($this->sut->isClosed());
-
-		$this->timeProvider->set(60);
-		$this->assertTrue($this->sut->isClosed());
-
-		// Cheekily add another request to the previous minute.
-		$this->timeProvider->set(57);
-		$this->sut->registerFailure();
-		$this->timeProvider->set(60);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>0,
+			'failures'=>5,
+			'rejections'=>0,
+			'totalRequests'=>5,
+			'failureRate'=>100,
+			'throttle'=>100
+		];
 		$this->assertFalse($this->sut->isClosed());
 	}
 
@@ -147,35 +156,18 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function canCloseProbably() {
 		$this->sut->setProbabilisticDynamics(TRUE);
-
 		$this->assertTrue($this->sut->isClosed());
 
-		$this->timeProvider->set(0);
-		$this->sut->registerFailure();
+		$this->circuitMonitor->previousResults = [
+			'successes'=>1,
+			'failures'=>2,
+			'rejections'=>0,
+			'totalRequests'=>3,
+			'failureRate'=>67,
+			'throttle'=>100
+		];
 
-		$this->timeProvider->set(30);
-		$this->sut->registerSuccess();
-
-		$this->timeProvider->set(59);
-		$this->sut->registerFailure();
-
-		// Next sample period. Previous period should be complete, with 2/3 failures.
-		$this->timeProvider->set(60);
-		$successes = 0;
-		$failures = 0;
-		for ($i=0; $i < 60; $i++) {
-			$this->timeProvider->set(60+$i);
-			if ($this->sut->isClosed()) {
-				$successes++;
-			}else{
-				$failures++;
-			}
-		}
-
-		$this->assertTrue($failures>30);
-		$this->assertTrue($failures<50);
-		$this->assertTrue($successes>10);
-		$this->assertTrue($successes<30);
+		$this->assertApproximateThrottle(33);
 	}
 
 	/**
@@ -186,32 +178,48 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->sut->setProbabilisticDynamics(TRUE);
 		$this->assertTrue($this->sut->isClosed());
 
-		$this->registerRequests([
-			1 => FALSE,
-			2 => FALSE,
-			3 => FALSE,
-			4 => FALSE,
-			5 => FALSE,
-			6 => FALSE,
-			7 => FALSE,
-			8 => FALSE,
-			9 => TRUE,
-			10 => TRUE
-		]);
-
-		// Next sample period. Previous period should be complete, with 80% failures.
-		$this->timeProvider->set(65);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>20,
+			'failures'=>80,
+			'rejections'=>0,
+			'totalRequests'=>100,
+			'failureRate'=>80,
+			'throttle'=>100
+		];
 		$this->assertApproximateThrottle(20);
 
+		$this->circuitMonitor->previousResults = [
+			'successes'=>20,
+			'failures'=>0,
+			'rejections'=>80,
+			'totalRequests'=>20,
+			'failureRate'=>0,
+			'throttle'=>20
+		];
+
 		// Throttle shouldn't exceed 40 in the next period, because it's 20% * 2.
-		$this->timeProvider->set(130);
 		$this->assertApproximateThrottle(40);
 
-		// etc.
-		$this->timeProvider->set(190);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>40,
+			'failures'=>0,
+			'rejections'=>60,
+			'totalRequests'=>40,
+			'failureRate'=>0,
+			'throttle'=>40
+		];
+
 		$this->assertApproximateThrottle(80);
 
-		$this->timeProvider->set(250);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>80,
+			'failures'=>0,
+			'rejections'=>20,
+			'totalRequests'=>80,
+			'failureRate'=>0,
+			'throttle'=>80
+		];
+
 		$this->assertApproximateThrottle(100);
 	}
 
@@ -224,28 +232,38 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->sut->setRecoveryFactor(4);
 		$this->assertTrue($this->sut->isClosed());
 
-		$this->registerRequests([
-			1 => FALSE,
-			2 => FALSE,
-			3 => FALSE,
-			4 => FALSE,
-			5 => FALSE,
-			6 => FALSE,
-			7 => FALSE,
-			8 => FALSE,
-			9 => TRUE,
-			10 => TRUE
-		]);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>20,
+			'failures'=>80,
+			'rejections'=>0,
+			'totalRequests'=>100,
+			'failureRate'=>80,
+			'throttle'=>100
+		];
 
-		// Next sample period. Previous period should be complete, with 80% failures.
-		$this->timeProvider->set(65);
 		$this->assertApproximateThrottle(20);
 
+		$this->circuitMonitor->previousResults = [
+			'successes'=>20,
+			'failures'=>0,
+			'rejections'=>80,
+			'totalRequests'=>20,
+			'failureRate'=>0,
+			'throttle'=>20
+		];
+
 		// Throttle shouldn't exceed 80 in the next period, because it's 20% * 4.
-		$this->timeProvider->set(130);
 		$this->assertApproximateThrottle(80);
 
-		$this->timeProvider->set(190);
+		$this->circuitMonitor->previousResults = [
+			'successes'=>80,
+			'failures'=>0,
+			'rejections'=>20,
+			'totalRequests'=>80,
+			'failureRate'=>0,
+			'throttle'=>80
+		];
+
 		$this->assertApproximateThrottle(100);
 	}
 
@@ -257,9 +275,6 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		for ($i=0; $i < 100; $i++) {
 			if ($this->sut->isClosed()) {
 				$timesClosed++;
-				$this->sut->registerSuccess();
-			}else{
-				$this->sut->registerRejection();
 			}
 		}
 		$this->assertTrue(abs($rate-$timesClosed) < ($rate/2), "Closed $timesClosed times. Expected ~$rate");

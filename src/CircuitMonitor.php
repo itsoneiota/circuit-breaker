@@ -60,28 +60,23 @@ class CircuitMonitor {
 
 	public function getResultsForPreviousPeriod() {
 		$timeStamp = $this->timeProvider->time();
-		$results = [
-			'successes'=>0,
-			'failures'=>0,
-			'rejections'=>0,
-			'totalRequests'=>0,
-			'failureRate'=>0,
-			'throttle'=>100
-		];
-
 		$previousPeriod = $timeStamp - $this->samplePeriod;
-		$successesKey = $this->getSuccessesCacheKey($previousPeriod);
-		$failuresKey = $this->getFailuresCacheKey($previousPeriod);
-		$rejectionsKey = $this->getRejectionsCacheKey($previousPeriod);
-		$results = $this->cache->get([$successesKey, $failuresKey, $rejectionsKey]);
-		$successes = NULL === $results[$successesKey] ? 0 : $results[$successesKey];
-		$failures = NULL === $results[$failuresKey] ? 0 : $results[$failuresKey];
-		$rejections = NULL === $results[$rejectionsKey] ? 0 : $results[$rejectionsKey];
+		return $this->getResultsForPeriod($previousPeriod);
+	}
 
+	public function getResultsForPeriod($timestamp){
+		$successesKey = $this->getSuccessesCacheKey($timestamp);
+		$failuresKey = $this->getFailuresCacheKey($timestamp);
+		$rejectionsKey = $this->getRejectionsCacheKey($timestamp);
+		$results = $this->cache->get([$successesKey, $failuresKey, $rejectionsKey]);
+
+		$successes = NULL !== $results[$successesKey] ? $results[$successesKey] : 0;
+		$failures = NULL !== $results[$failuresKey] ? $results[$failuresKey] : 0;
+		$rejections = NULL !== $results[$rejectionsKey] ? $results[$rejectionsKey] : 0;
 		$totalRequests = $successes + $failures;
-		$failureRate = $totalRequests == 0 ? 0 : round(($failures/$totalRequests)*100);
+		$failureRate = $totalRequests != 0 ? round(($failures/$totalRequests)*100) : 0;
 		$totalAttempts = $totalRequests + $rejections;
-		$throttle = $totalAttempts == 0 ? 100 : 100-round(($rejections/$totalAttempts)*100);
+		$throttle = $totalAttempts != 0 ? 100-round(($rejections/$totalAttempts)*100) : 100;
 
 		return [
 			'successes'=>$successes,
