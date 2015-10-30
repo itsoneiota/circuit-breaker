@@ -67,29 +67,55 @@ class CircuitMonitor {
 			throw new \InvalidArgumentException('howMany must be a positive integer.');
 		}
 		$timeStamp = $this->timeProvider->time();
-		$results = [];
+		$allKeys = [];
+		$keysByPeriod = [];
+
 		for ($i=(0-$howMany); $i < 0; $i++) {
 			$period = $timeStamp + ($i*$this->samplePeriod);
-			$results[$period] = $this->getResultsForPeriod($period);
+			$keys = $this->getKeysForPeriod($period);
+			$keysByPeriod[$period] = $keys;
+			$allKeys = array_merge($allKeys, array_values($keys));
 		}
+		$cacheValues = $this->cache->get($allKeys);
+		$results = [];
+		foreach ($keysByPeriod as $period => $keys) {
+			$results[$period] = $this->buildResults($cacheValues, $keys);
+		}
+
 		return $results;
+	}
+
+	protected function getKeysForPeriod($timestamp){
+		$successesKey = $this->getSuccessesCacheKey($timestamp);
+		$failuresKey = $this->getFailuresCacheKey($timestamp);
+		$rejectionsKey = $this->getRejectionsCacheKey($timestamp);
+		return ['successes'=>$successesKey, 'failures'=>$failuresKey, 'rejections'=>$rejectionsKey];
 	}
 
 	public function getResultsForPreviousPeriod() {
 		$timeStamp = $this->timeProvider->time();
 		$previousPeriod = $timeStamp - $this->samplePeriod;
-		return $this->getResultsForPeriod($previousPeriod);
+		$results = $this->getResultsForPeriod($previousPeriod);
+		return $results;
 	}
 
 	public function getResultsForPeriod($timestamp){
-		$successesKey = $this->getSuccessesCacheKey($timestamp);
-		$failuresKey = $this->getFailuresCacheKey($timestamp);
-		$rejectionsKey = $this->getRejectionsCacheKey($timestamp);
-		$results = $this->cache->get([$successesKey, $failuresKey, $rejectionsKey]);
+		$keys = $this->getKeysForPeriod($timestamp);
+		$successesKey = $keys['successes'];
+		$failuresKey = $keys['failures'];
+		$rejectionsKey = $keys['rejections'];
+		$cacheValues = $this->cache->get(array_values($keys));
+		return $this->buildResults($cacheValues, $keys);
+	}
 
-		$successes = NULL !== $results[$successesKey] ? $results[$successesKey] : 0;
-		$failures = NULL !== $results[$failuresKey] ? $results[$failuresKey] : 0;
-		$rejections = NULL !== $results[$rejectionsKey] ? $results[$rejectionsKey] : 0;
+	protected function buildResults($results, $keys){
+		$successesKey = $keys['successes'];
+		$failuresKey = $keys['failures'];
+		$rejectionsKey = $keys['rejections'];
+
+		$successes = isset($results[$successesKey]) ? $results[$successesKey] : 0;
+		$failures = isset($results[$failuresKey]) ? $results[$failuresKey] : 0;
+		$rejections = isset($results[$rejectionsKey]) ? $results[$rejectionsKey] : 0;
 		$totalRequests = $successes + $failures;
 		$failureRate = $totalRequests != 0 ? round(($failures/$totalRequests)*100) : 0;
 		$totalAttempts = $totalRequests + $rejections;

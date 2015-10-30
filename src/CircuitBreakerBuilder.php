@@ -9,8 +9,10 @@ class CircuitBreakerBuilder {
     protected $serviceName;
     protected $cache;
     protected $cacheBuilder;
+    protected $memcachedHost;
+    protected $memcachedPort;
     protected $timeProvider;
-    protected $samplePeriod = 60;
+    protected $samplePeriod = CircuitMonitor::SAMPLE_PERIOD_DEFAULT;
     protected $config = [];
 
     public static function create($serviceName){
@@ -28,6 +30,13 @@ class CircuitBreakerBuilder {
 
     public function withCacheBuilder(callable $cacheBuilder){
         $this->cacheBuilder = $cacheBuilder;
+        return $this;
+    }
+
+    public function withMemcachedServer($host,$port){
+        $this->memcachedHost = $host;
+        $this->memcachedPort = $port;
+
         return $this;
     }
 
@@ -86,28 +95,57 @@ class CircuitBreakerBuilder {
         return $this;
     }
 
+    protected function buildMemcached(){
+        $memcached = new \Memcached();
+        $memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL, TRUE);
+    	if(!$memcached->addServer($this->memcachedHost,$this->memcachedPort)){
+    		$message = $memcached->getResultMessage()."(".$memcached->getResultCode().")";
+    		throw new InvalidArgumentException("Can't connect to memcached: ".$host.", message: $port");
+    	}
+
+        return $memcached;
+    }
+
+    protected function buildCacheFromMemcachedServer(){
+        $mc = $this->buildMemcached();
+        $keyPrefix = 'CircuitBreaker-'.$this->serviceName;
+        $expiration = $this->samplePeriod * 100;
+        $cache = new \itsoneiota\cache\Cache($mc, $keyPrefix, $expiration);
+        return $cache;
+    }
+
     protected function buildCache(){
         if(NULL !== $this->cache){
             return $this->cache;
         }
+        $cache = NULL;
         if(NULL !== $this->cacheBuilder){
-            try {
-                $builder = $this->cacheBuilder;
-                $cache = $builder();
-                if(is_object($cache) && is_a($cache, '\itsoneiota\cache\Cache')){
-                    return $cache;
-                }
-            } catch (\Exception $e) {
-
-            }
+            $cache = $this->tryCacheBuilder($this->cacheBuilder);
+        }
+        if(NULL === $cache && NULL !== $this->memcachedHost){
+            $cache = $this->tryCacheBuilder([$this,'buildCacheFromMemcachedServer']);
+        }
+        if(NULL !== $cache){
+            return new \itsoneiota\cache\InMemoryCacheFront($cache);
         }
         return new \itsoneiota\cache\InMemoryCache();
+    }
+
+    protected function tryCacheBuilder(callable $builder){
+        try {
+            $cache = $builder();
+            if(is_object($cache) && is_a($cache, '\itsoneiota\cache\Cache')){
+                return $cache;
+            }
+        } catch (\Exception $e) {
+        }
+        return NULL;
     }
 
     public function buildMonitor(){
         $cache = $this->buildCache();
 		$timeProvider = NULL !== $this->timeProvider ? $this->timeProvider : new SystemTimeProvider();
-		return new CircuitMonitor($this->serviceName, $cache, $timeProvider);
+		return new CircuitMonitor($this->serviceName, $cache, $timeProvider, $this->samplePeriod);
     }
 
     protected function configureBreaker(CircuitBreaker $breaker){
