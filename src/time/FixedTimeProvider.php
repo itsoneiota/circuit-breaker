@@ -3,7 +3,7 @@ namespace itsoneiota\circuitbreaker\time;
 /**
  * Time provider that provides the same timestamp whenever it's asked.
  */
-class SystemTimeProvider implements TimeProvider {
+class FixedTimeProvider implements TimeProvider {
 
     protected $time;
 
