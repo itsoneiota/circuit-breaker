@@ -71,6 +71,11 @@ class CircuitBreakerBuilder {
     }
 
     public function withConfig(array $config){
+        // Pluck the sample period out of the config,
+        // as it's the only bit that goes to the monitor.
+        if (isset($config['samplePeriod'])) {
+            $this->withSamplePeriod($config['samplePeriod']);
+        }
         $this->config = $config;
         return $this;
     }
