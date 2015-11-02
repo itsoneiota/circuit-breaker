@@ -21,12 +21,14 @@ class CircuitBreaker {
 	 * Constructor
 	 *
 	 * @param string $serviceName Name of the service. Used in cache keys.
-	 * @param itsoneiota\cache\Cache $cache Cache used to persist the state.
-	 * @param itsoneiota\circuitbreaker\time\TimeProvider $timeProvider Time provider.
-	 * @param array $config Configuration array. Allowed keys: enabled, samplePeriod, percentageFailureThreshold, minimumRequestsBeforeTrigger.
+	 * @param itsoneiota\circuitbreaker\CircuitMonitor $circuitMonitor
 	 */
 	public function __construct(CircuitMonitor $circuitMonitor) {
 		$this->circuitMonitor = $circuitMonitor;
+	}
+
+	public function getMonitor(){
+		return $this->circuitMonitor;
 	}
 
 	public function setEnabled($enabled) {
