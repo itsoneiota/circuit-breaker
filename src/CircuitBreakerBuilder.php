@@ -7,6 +7,7 @@ use \itsoneiota\circuitbreaker\time\SystemTimeProvider;
 class CircuitBreakerBuilder {
 
     protected $serviceName;
+    protected $logger;
     protected $cache;
     protected $cacheBuilder;
     protected $memcachedHost;
@@ -21,6 +22,28 @@ class CircuitBreakerBuilder {
 
     public function __construct($serviceName){
         $this->serviceName = $serviceName;
+    }
+
+    protected function logError($message){
+        if ($this->logger) {
+            // Definition of critical: Application component unavailable, unexpected exception.
+            $config = $this->config;
+            $config['memcachedHost'] = $this->memcachedHost;
+            $config['memcachedPort'] = $this->memcachedPort;
+            $configJSON = json_encode($config);
+            $this->logger->critical($message . ' ' . $configJSON);
+        }
+    }
+
+    /**
+     * Set a logger to report errors that occur while building.
+     * Without a logger, errors will be silenced.
+     *
+     * @param \Psr\Log\LoggerInterface $logger
+     */
+    public function withLogger(\Psr\Log\LoggerInterface $logger){
+        $this->logger = $logger;
+        return $this;
     }
 
     public function withCache(Cache $cache=NULL){
@@ -105,7 +128,7 @@ class CircuitBreakerBuilder {
         $memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL, TRUE);
     	if(!$memcached->addServer($this->memcachedHost,$this->memcachedPort)){
     		$message = $memcached->getResultMessage()."(".$memcached->getResultCode().")";
-    		throw new InvalidArgumentException("Can't connect to memcached: ".$host.", message: $port");
+    		throw new \RuntimeException("Can't connect to memcached: ".$host.", message: $port");
     	}
 
         return $memcached;
@@ -143,6 +166,7 @@ class CircuitBreakerBuilder {
                 return $cache;
             }
         } catch (\Exception $e) {
+            $this->logError('Failed to build cache. ' . $e->getMessage());
         }
         return NULL;
     }

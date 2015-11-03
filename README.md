@@ -10,11 +10,11 @@ The circuit is said to be 'closed' if it should continue to make requests, and '
 
 Installation
 ------------
-The best way to autoload this package and its dependencies is to include the standard Composer autoloader, `vendor/autoload.php`.
+	composer require itsoneiota/circuit-breaker
 
 Testing
 -------
-The library's suite of unit tests can be run by running `phpunit` from the root of the repository.
+	./vendor/bin/phpunit
 
 Basic Usage
 -----------
@@ -22,7 +22,7 @@ Basic Usage
 ### Builder
 The easiest way to build a circuit breaker is with the builder class.
 
-	$cb = CircuitBreakerBuilder::create('myService')->withCache($cache)->build();
+	$this->breaker = CircuitBreakerBuilder::create('myService')->withCache($cache)->build();
 
 Where `myService` is the name of my service, and `$cache` is an `\itsoneiota\cache\Cache` instance. All circuit breakers using the same cache and service name will share their statistics and will be open and closed together.
 
@@ -30,11 +30,12 @@ Where `myService` is the name of my service, and `$cache` is an `\itsoneiota\cac
 So, let's say we're calling a remote service, and we want to protect ourselves from it having a bad day.
 
 	public function getRemoteStuff(){
-		$cb = new CircuitBreaker($this->cache, 'remoteService');
-
 		// If the circuit is open, don't make the request.
-		if(!$cb->isClosed()){
-			$cb->registerRejection();
+		if(!$this->breaker->isClosed()){
+			$this->breaker->registerRejection();
+
+			// Handle how you want to respond if the circuit is open here.
+			// Maybe throw an exception, or return a cached value.
 			return NULL;
 		}
 
@@ -43,12 +44,12 @@ So, let's say we're calling a remote service, and we want to protect ourselves f
 
 		if($response === FALSE){
 			// Register the failure and return a default value.
-			$cb->registerFailure();
+			$this->breaker->registerFailure();
 			return NULL;
 		}
 
 		// Success!
-		$cb->registerSuccess();
+		$this->breaker->registerSuccess();
 		return $response;
 	}
 
@@ -56,7 +57,8 @@ So, let's say we're calling a remote service, and we want to protect ourselves f
 Circuit breakers can be configured either directly, or via the builder. The builder usually makes this a little nicer and easier to read, so that's what's documented here. The methods below can be chained together in a fluent style, e.g.:
 
 	CircuitBreakerBuilder::create('foo')
-		->withCache($mc)
+		->withLogger($logger)
+		->withMemcachedServer($host, $port)
 		->withTimeProvider($tp)
 		->withMinimumRequestsBeforeTrigger(100)
 		->withPercentageFailureThreshold(60)
@@ -66,7 +68,7 @@ Circuit breakers can be configured either directly, or via the builder. The buil
 		->build();
 
 #### `enabled()` / `disabled()` (default: enabled)
-Turns the circuit breaker on or off, respectively. When enabled, the breaker will trip in response to excessive failed requests. When disabled, it will continue to record success/failure statistics, but it will not trip.
+Turns the circuit breaker on or off, respectively. When enabled, the breaker will trip in response to excessive failed requests. When disabled, it will continue to record success/failure/rejection statistics, but it will not trip.
 
 #### `withSamplePeriod($period)` (default 60)
 The period of time, in seconds, over which successes and failures are aggregated before a decision is made.
@@ -83,14 +85,17 @@ Dynamics of the breaker when tripped. If deterministic, the circuit will open co
 #### `withRecoveryFactor($factor)` (default 2)
 The rate at which throttling relaxes in subsequent periods. See _Recovery Dynamics_, below.
 
-#### `withCache()` / `withCacheBuilder()`
-Both of these methods help to supply a `Cache` instance to the `CircuitMonitor` instance that underpins the `CircuitBreaker`. Since `CircuitBreaker` is meant to decouple your system from its external dependencies, it's important that its dependency on cache doesn't cause failures. If your app already has a working cache instance, then supplying it to `withCache()` will work just fine. If the cache instance hasn't been built yet, then it's best to supply a callback function to `withCacheBuilder()`. This allows the builder to isolate any difficulties in building the cache instance, and supply a default if there's a problem. The default will be pretty much useless, but it will help avoid a crash. Here's an example:
+#### `withCache()` / `withCacheBuilder()` / `withMemcachedServer($host, $port)`
+These methods help to supply a `Cache` instance to the circuit breaker. Since `CircuitBreaker` is meant to decouple your system from its external dependencies, it's important that its dependency on cache doesn't cause failures. If your app already has a working `Cache` instance, then supplying it to `withCache()` will work just fine. If the cache instance hasn't been built yet, then it's best to either supply a callback function to `withCacheBuilder()`, or pass the host and port of your memcached server to `withMemcachedServer()`. This allows the builder to isolate any difficulties in building the cache instance, and supply a default if there's a problem. The default will be pretty much useless, but it will help avoid a crash. Here's an example:
 
 	$cacheBuilder = function(){
 		// Do risky cache building here…
 		return $cache;
 	};
 	CircuitBreakerBuilder::create('foo')->withCacheBuilder($cacheBuilder)->build();
+
+#### `withLogger($logger)`
+Sets a `Psr\Log\LoggerInterface` instance that can be used to log any errors _at build time_. Build errors are logged with a level of `critical`. Typically, this will be a problem connecting to memcached. Without logging errors, the breaker will fail silently, and you may never know.
 
 Open or Closed?
 ---------------
