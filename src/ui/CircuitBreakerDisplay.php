@@ -40,7 +40,7 @@ class CircuitBreakerDisplay {
         $rejections = [];
         $throttles = [];
 
-        foreach ($results as $result) {
+        foreach ($results as $period => $result) {
             // $successes[] = $result['successes'];
             // $failures[] = $result['failures'];
             // $rejections[] = $result['rejections'];

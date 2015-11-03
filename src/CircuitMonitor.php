@@ -44,16 +44,16 @@ class CircuitMonitor {
 	}
 
 	public function registerEvent($event){
-		$timeStamp = $this->timeProvider->time();
+		$timestamp = $this->timeProvider->time();
 		switch ($event) {
 			case self::EVENT_SUCCESS:
-				$key = $this->getSuccessesCacheKey($timeStamp);
+				$key = $this->getSuccessesCacheKey($timestamp);
 				break;
 			case self::EVENT_FAILURE:
-				$key = $this->getFailuresCacheKey($timeStamp);
+				$key = $this->getFailuresCacheKey($timestamp);
 				break;
 			case self::EVENT_REJECTION:
-				$key = $this->getRejectionsCacheKey($timeStamp);
+				$key = $this->getRejectionsCacheKey($timestamp);
 				break;
 			default:
 				throw new \InvalidArgumentException('Unrecognised event: '.$event);
@@ -66,12 +66,12 @@ class CircuitMonitor {
 		if(!is_int($howMany) || $howMany <= 0){
 			throw new \InvalidArgumentException('howMany must be a positive integer.');
 		}
-		$timeStamp = $this->timeProvider->time();
+		$timestamp = $this->timeProvider->time();
 		$allKeys = [];
 		$keysByPeriod = [];
 
 		for ($i=(0-$howMany); $i < 0; $i++) {
-			$period = $timeStamp + ($i*$this->samplePeriod);
+			$period = $timestamp + ($i*$this->samplePeriod);
 			$keys = $this->getKeysForPeriod($period);
 			$keysByPeriod[$period] = $keys;
 			$allKeys = array_merge($allKeys, array_values($keys));
@@ -79,7 +79,7 @@ class CircuitMonitor {
 		$cacheValues = $this->cache->get($allKeys);
 		$results = [];
 		foreach ($keysByPeriod as $period => $keys) {
-			$results[$period] = $this->buildResults($cacheValues, $keys);
+			$results[$period] = $this->buildResults($cacheValues, $keys, $period);
 		}
 
 		return $results;
@@ -93,8 +93,8 @@ class CircuitMonitor {
 	}
 
 	public function getResultsForPreviousPeriod() {
-		$timeStamp = $this->timeProvider->time();
-		$previousPeriod = $timeStamp - $this->samplePeriod;
+		$timestamp = $this->timeProvider->time();
+		$previousPeriod = $timestamp - $this->samplePeriod;
 		$results = $this->getResultsForPeriod($previousPeriod);
 		return $results;
 	}
@@ -105,10 +105,11 @@ class CircuitMonitor {
 		$failuresKey = $keys['failures'];
 		$rejectionsKey = $keys['rejections'];
 		$cacheValues = $this->cache->get(array_values($keys));
-		return $this->buildResults($cacheValues, $keys);
+		$results = $this->buildResults($cacheValues, $keys, $timestamp);
+		return $results;
 	}
 
-	protected function buildResults($results, $keys){
+	protected function buildResults($results, $keys, $timestamp){
 		$successesKey = $keys['successes'];
 		$failuresKey = $keys['failures'];
 		$rejectionsKey = $keys['rejections'];
@@ -122,6 +123,8 @@ class CircuitMonitor {
 		$throttle = $totalAttempts != 0 ? 100-round(($rejections/$totalAttempts)*100) : 100;
 
 		return [
+			'periodStart' => $this->getPeriodStart($timestamp),
+			'periodEnd' => $this->getPeriodEnd($timestamp),
 			'successes'=>$successes,
 			'failures'=>$failures,
 			'rejections'=>$rejections,
@@ -131,24 +134,32 @@ class CircuitMonitor {
 		];
 	}
 
-	protected function getPeriod($timeStamp) {
-		return floor($timeStamp/$this->samplePeriod);
+	protected function getPeriod($timestamp) {
+		return floor($timestamp/$this->samplePeriod);
 	}
 
-	protected function getCacheName($timeStamp) {
-		return $this->serviceName.'.'.$this->getPeriod($timeStamp);
+	protected function getPeriodStart($timestamp) {
+		return $this->getPeriod($timestamp) * $this->samplePeriod;
 	}
 
-	protected function getSuccessesCacheKey($timeStamp) {
-		return $this->getCacheName($timeStamp) . '.successes';
+	protected function getPeriodEnd($timestamp) {
+		return (($this->getPeriod($timestamp)+1) * $this->samplePeriod) -1 ;
 	}
 
-	protected function getFailuresCacheKey($timeStamp) {
-		return $this->getCacheName($timeStamp) . '.failures';
+	protected function getCacheName($timestamp) {
+		return $this->serviceName.'.'.$this->getPeriod($timestamp);
 	}
 
-	protected function getRejectionsCacheKey($timeStamp) {
-		return $this->getCacheName($timeStamp) . '.rejections';
+	protected function getSuccessesCacheKey($timestamp) {
+		return $this->getCacheName($timestamp) . '.successes';
+	}
+
+	protected function getFailuresCacheKey($timestamp) {
+		return $this->getCacheName($timestamp) . '.failures';
+	}
+
+	protected function getRejectionsCacheKey($timestamp) {
+		return $this->getCacheName($timestamp) . '.rejections';
 	}
 
 }
