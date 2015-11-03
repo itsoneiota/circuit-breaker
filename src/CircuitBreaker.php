@@ -7,7 +7,13 @@ class CircuitBreaker {
 
 	// TODO: Inject a random number generator to make tests deterministic.
 
-	const THROTTLE_SNAPBACK = 80; // Percentage throttle beyond which will the circuit will 'snap' back to fully closed.
+	// If the circuit is fully open, and is letting 0 traffic through,
+	// this figure will be the percentage throttle in the next timestep.
+	const FIRST_RECOVERY_STEP = 10; // %
+
+ 	// Percentage throttle beyond which will the circuit
+	// will 'snap' back to fully closed.
+	const THROTTLE_SNAPBACK = 80; // %
 
 	protected $circuitMonitor;
 
@@ -107,7 +113,7 @@ class CircuitBreaker {
 		$insufficientRequests = $results['totalRequests'] < $this->minimumRequestsBeforeTrigger;
 		$failureRateBelowThreshold = $results['failureRate'] < $this->percentageFailureThreshold;
 		$recovering = $results['throttle'] < 100;
-		return $insufficientRequests || ($failureRateBelowThreshold && !$recovering);
+		return ($insufficientRequests || $failureRateBelowThreshold) && !$recovering;
 	}
 
 	/**
@@ -129,8 +135,19 @@ class CircuitBreaker {
 		}
 		$successRate = 100-$prev['failureRate'];
 
-		// Don't suddenly increase the throttle just because a limited number of requests succeeded.
-		$threshold = min($successRate, ($prev['throttle'] * $this->recoveryFactor));
+		/**
+		 * Don't suddenly increase the throttle just because a limited number of requests succeeded.
+		 */
+		$newThrottle = ($prev['throttle'] * $this->recoveryFactor);
+
+		/**
+		 * If the throttle was 0 in the previous period, multiplying it won't do any good.
+		 * Add a fixed step to start the recovery.
+		 */
+		if($newThrottle == 0){
+			$newThrottle = self::FIRST_RECOVERY_STEP;
+		}
+		$threshold = min($successRate, $newThrottle);
 
 		if($threshold > self::THROTTLE_SNAPBACK){
 			return TRUE;

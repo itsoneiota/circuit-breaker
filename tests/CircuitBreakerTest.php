@@ -268,6 +268,50 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	}
 
 	/**
+	 * It should recover steadily after a 100% failure rate.
+	 * @test
+	 */
+	public function canRecoverFromAbsoluteFailure() {
+		$this->sut->setProbabilisticDynamics(TRUE);
+		$this->sut->setRecoveryFactor(2);
+		$this->assertTrue($this->sut->isClosed());
+
+		$this->circuitMonitor->previousResults = [
+			'successes'=>0,
+			'failures'=>100,
+			'rejections'=>0,
+			'totalRequests'=>100,
+			'failureRate'=>100,
+			'throttle'=>100
+		];
+
+		$this->assertApproximateThrottle(0);
+
+		$this->circuitMonitor->previousResults = [
+			'successes'=>0,
+			'failures'=>0,
+			'rejections'=>100,
+			'totalRequests'=>0,
+			'failureRate'=>0,
+			'throttle'=>0
+		];
+
+		// The throttle needs to step up, since multiplying by 0 won't work.
+		$this->assertApproximateThrottle(10);
+
+		$this->circuitMonitor->previousResults = [
+			'successes'=>20,
+			'failures'=>0,
+			'rejections'=>80,
+			'totalRequests'=>20,
+			'failureRate'=>0,
+			'throttle'=>20
+		];
+
+		$this->assertApproximateThrottle(40);
+	}
+
+	/**
 	 * Make 100 requests and check that the throttle rate is about right.
 	 */
 	protected function assertApproximateThrottle($rate){
@@ -277,7 +321,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 				$timesClosed++;
 			}
 		}
-		$this->assertTrue(abs($rate-$timesClosed) < ($rate/2), "Closed $timesClosed times. Expected ~$rate");
+		$this->assertTrue(abs($rate-$timesClosed) <= ($rate/2), "Closed $timesClosed times. Expected ~$rate");
 	}
 
 }
