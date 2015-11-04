@@ -122,3 +122,7 @@ The circuit breaker records statistics in cache buckets based on the current tim
 - `SystemTimeProvider` is a simple wrapper for `time()`.
 - `FixedTimeProvider` will always give the same time. Might be faster, who knows? Also quite handy for testing.
 - _Roll your own_: You can implement your own `TimeProvider` if you have esoteric requirements.
+
+The Random Number Generator
+---------------------------
+The circuit breaker uses random numbers when partially closed with probabilistic dynamics. Random number generation for the circuit breaker needn't be complex, but it helps testing to substitute `rand()` number generation with something deterministic. To help with that, a `RandomNumberGenerator` instance is injected to the constructor. There shouldn't be any need to fiddle with this in normal use.

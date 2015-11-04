@@ -3,6 +3,7 @@ namespace itsoneiota\circuitbreaker;
 use \itsoneiota\cache\Cache;
 use \itsoneiota\circuitbreaker\time\TimeProvider;
 use \itsoneiota\circuitbreaker\time\SystemTimeProvider;
+use itsoneiota\circuitbreaker\random\RandomNumberGenerator;
 
 class CircuitBreakerBuilder {
 
@@ -13,6 +14,7 @@ class CircuitBreakerBuilder {
     protected $memcachedHost;
     protected $memcachedPort;
     protected $timeProvider;
+    protected $random;
     protected $samplePeriod = CircuitMonitor::SAMPLE_PERIOD_DEFAULT;
     protected $config = [];
 
@@ -65,6 +67,11 @@ class CircuitBreakerBuilder {
 
     public function withTimeProvider(TimeProvider $timeProvider){
         $this->timeProvider = $timeProvider;
+        return $this;
+    }
+
+    public function withRandomNumberGenerator(RandomNumberGenerator $random){
+        $this->random = $random;
         return $this;
     }
 
@@ -194,9 +201,17 @@ class CircuitBreakerBuilder {
 		}
     }
 
+    protected function getRandomNumberGenerator(){
+        if ($this->random) {
+            return $this->random;
+        }
+        return new random\Rand();
+    }
+
     public function build(){
         $monitor = $this->buildMonitor();
-		$cb = new CircuitBreaker($monitor);
+        $random = $this->getRandomNumberGenerator();
+		$cb = new CircuitBreaker($monitor, $random);
         $this->configureBreaker($cb);
 
         return $cb;

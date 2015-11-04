@@ -1,5 +1,6 @@
 <?php
 namespace itsoneiota\circuitbreaker;
+use itsoneiota\circuitbreaker\random\MockRandomNumberGenerator;
 /**
  * Tests for CircuitBreaker.
  *
@@ -11,7 +12,8 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 
 	public function setUp() {
 		$this->circuitMonitor = new MockCircuitMonitor();
-		$this->sut = new CircuitBreaker($this->circuitMonitor);
+		$this->random = new MockRandomNumberGenerator();
+		$this->sut = new CircuitBreaker($this->circuitMonitor, $this->random);
 	}
 
 	/**
@@ -167,7 +169,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>100
 		];
 
-		$this->assertApproximateThrottle(33);
+		$this->assertThrottle(33);
 	}
 
 	/**
@@ -186,7 +188,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'failureRate'=>80,
 			'throttle'=>100
 		];
-		$this->assertApproximateThrottle(20);
+		$this->assertThrottle(20);
 
 		$this->circuitMonitor->previousResults = [
 			'successes'=>20,
@@ -198,7 +200,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		];
 
 		// Throttle shouldn't exceed 40 in the next period, because it's 20% * 2.
-		$this->assertApproximateThrottle(40);
+		$this->assertThrottle(40);
 
 		$this->circuitMonitor->previousResults = [
 			'successes'=>40,
@@ -209,7 +211,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>40
 		];
 
-		$this->assertApproximateThrottle(80);
+		$this->assertThrottle(80);
 
 		$this->circuitMonitor->previousResults = [
 			'successes'=>80,
@@ -220,7 +222,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>80
 		];
 
-		$this->assertApproximateThrottle(100);
+		$this->assertThrottle(100);
 	}
 
 	/**
@@ -241,7 +243,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>100
 		];
 
-		$this->assertApproximateThrottle(20);
+		$this->assertThrottle(20);
 
 		$this->circuitMonitor->previousResults = [
 			'successes'=>20,
@@ -253,7 +255,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		];
 
 		// Throttle shouldn't exceed 80 in the next period, because it's 20% * 4.
-		$this->assertApproximateThrottle(80);
+		$this->assertThrottle(80);
 
 		$this->circuitMonitor->previousResults = [
 			'successes'=>80,
@@ -264,7 +266,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>80
 		];
 
-		$this->assertApproximateThrottle(100);
+		$this->assertThrottle(100);
 	}
 
 	/**
@@ -285,7 +287,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>100
 		];
 
-		$this->assertApproximateThrottle(0);
+		$this->assertThrottle(0);
 
 		$this->circuitMonitor->previousResults = [
 			'successes'=>0,
@@ -297,7 +299,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		];
 
 		// The throttle needs to step up, since multiplying by 0 won't work.
-		$this->assertApproximateThrottle(10);
+		$this->assertThrottle(10);
 
 		$this->circuitMonitor->previousResults = [
 			'successes'=>20,
@@ -308,20 +310,20 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>20
 		];
 
-		$this->assertApproximateThrottle(40);
+		$this->assertThrottle(40);
 	}
 
 	/**
-	 * Make 100 requests and check that the throttle rate is about right.
+	 * Make 100 requests and check that the throttle rate is correct.
 	 */
-	protected function assertApproximateThrottle($rate){
+	protected function assertThrottle($rate){
 		$timesClosed = 0;
 		for ($i=0; $i < 100; $i++) {
 			if ($this->sut->isClosed()) {
 				$timesClosed++;
 			}
 		}
-		$this->assertTrue(abs($rate-$timesClosed) <= ($rate/2), "Closed $timesClosed times. Expected ~$rate");
+		$this->assertEquals($rate, $timesClosed, "Closed $timesClosed times. Expected $rate");
 	}
 
 }

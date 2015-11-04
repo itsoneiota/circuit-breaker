@@ -1,5 +1,6 @@
 <?php
 namespace itsoneiota\circuitbreaker;
+use itsoneiota\circuitbreaker\random\MockRandomNumberGenerator;
 /**
  * Tests for CircuitBreaker in combination with CircuitMonitor,
  * constructed using the builder.
@@ -14,8 +15,12 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->cache = new \itsoneiota\cache\MockCache();
 		$this->startTime = 1407424500;
 		$this->timeProvider = new time\MockTimeProvider($this->startTime);
-
-		$this->sut = CircuitBreakerBuilder::create('myService')->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
+		$this->random = new MockRandomNumberGenerator();
+		$this->sut = CircuitBreakerBuilder::create('myService')
+			->withCache($this->cache)
+			->withTimeProvider($this->timeProvider)
+			->withRandomNumberGenerator($this->random)
+			->build();
 	}
 
 	public function registerRequests(array $requests){
@@ -152,29 +157,18 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->timeProvider->set(0);
 		$this->sut->registerFailure();
 
+		$this->timeProvider->set(1);
+		$this->sut->registerFailure();
+
 		$this->timeProvider->set(30);
 		$this->sut->registerSuccess();
 
 		$this->timeProvider->set(59);
 		$this->sut->registerFailure();
 
-		// Next sample period. Previous period should be complete, with 2/3 failures.
+		// Next sample period. Previous period should be complete, with 3/4 failures.
 		$this->timeProvider->set(60);
-		$successes = 0;
-		$failures = 0;
-		for ($i=0; $i < 60; $i++) {
-			$this->timeProvider->set(60+$i);
-			if ($this->sut->isClosed()) {
-				$successes++;
-			}else{
-				$failures++;
-			}
-		}
-
-		$this->assertTrue($failures>30);
-		$this->assertTrue($failures<50);
-		$this->assertTrue($successes>10);
-		$this->assertTrue($successes<30);
+		$this->assertThrottle(25);
 	}
 
 	/**
@@ -200,18 +194,18 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 
 		// Next sample period. Previous period should be complete, with 80% failures.
 		$this->timeProvider->set(65);
-		$this->assertApproximateThrottle(20);
+		$this->assertThrottle(20);
 
 		// Throttle shouldn't exceed 40 in the next period, because it's 20% * 2.
 		$this->timeProvider->set(130);
-		$this->assertApproximateThrottle(40);
+		$this->assertThrottle(40);
 
 		// etc.
 		$this->timeProvider->set(190);
-		$this->assertApproximateThrottle(80);
+		$this->assertThrottle(80);
 
 		$this->timeProvider->set(250);
-		$this->assertApproximateThrottle(100);
+		$this->assertThrottle(100);
 	}
 
 	/**
@@ -238,30 +232,30 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 
 		// Next sample period. Previous period should be complete, with 80% failures.
 		$this->timeProvider->set(65);
-		$this->assertApproximateThrottle(20);
+		$this->assertThrottle(20);
 
 		// Throttle shouldn't exceed 80 in the next period, because it's 20% * 4.
 		$this->timeProvider->set(130);
-		$this->assertApproximateThrottle(80);
+		$this->assertThrottle(80);
 
 		$this->timeProvider->set(190);
-		$this->assertApproximateThrottle(100);
+		$this->assertThrottle(100);
 	}
 
 	/**
 	 * Make 100 requests and check that the throttle rate is about right.
 	 */
-	protected function assertApproximateThrottle($rate){
+	protected function assertThrottle($rate){
 		$timesClosed = 0;
 		for ($i=0; $i < 100; $i++) {
 			if ($this->sut->isClosed()) {
-				$timesClosed++;
 				$this->sut->registerSuccess();
+				$timesClosed++;
 			}else{
 				$this->sut->registerRejection();
 			}
 		}
-		$this->assertTrue(abs($rate-$timesClosed) < ($rate/2), "Closed $timesClosed times. Expected ~$rate");
+		$this->assertEquals($rate, $timesClosed, "Closed $timesClosed times. Expected $rate");
 	}
 
 }

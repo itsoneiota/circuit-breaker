@@ -1,5 +1,6 @@
 <?php
 namespace itsoneiota\circuitbreaker;
+use itsoneiota\circuitbreaker\random\RandomNumberGenerator;
 /**
  * A device used to detect high failure rates in calls to dependencies.
  */
@@ -16,6 +17,7 @@ class CircuitBreaker {
 	const THROTTLE_SNAPBACK = 80; // %
 
 	protected $circuitMonitor;
+	protected $random;
 
 	protected $enabled = TRUE;
 	protected $percentageFailureThreshold = 50;
@@ -28,9 +30,11 @@ class CircuitBreaker {
 	 *
 	 * @param string $serviceName Name of the service. Used in cache keys.
 	 * @param itsoneiota\circuitbreaker\CircuitMonitor $circuitMonitor
+	 * @param itsoneiota\circuitbreaker\random\RandomNumberGenerator $random
 	 */
-	public function __construct(CircuitMonitor $circuitMonitor) {
+	public function __construct(CircuitMonitor $circuitMonitor, RandomNumberGenerator $random) {
 		$this->circuitMonitor = $circuitMonitor;
+		$this->random = $random;
 	}
 
 	public function getMonitor(){
@@ -152,7 +156,7 @@ class CircuitBreaker {
 		if($threshold > self::THROTTLE_SNAPBACK){
 			return TRUE;
 		}
-		$result = rand(0,100) < $threshold;
+		$result = $this->random->rand(0,99) < $threshold;
 		return $result;
 	}
 
