@@ -95,4 +95,44 @@ class CircuitMonitorTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(50, $results['throttle']);
 	}
 
+	/**
+	 * If cache returns an int as a string, make sure it's cast.
+	 * @test
+	 */
+	public function canHandleStringsReturnedFromCache() {
+        $this->registerEvents([
+			1 => CircuitMonitor::EVENT_FAILURE,
+			2 => CircuitMonitor::EVENT_FAILURE,
+			3 => CircuitMonitor::EVENT_FAILURE,
+			4 => CircuitMonitor::EVENT_FAILURE,
+			5 => CircuitMonitor::EVENT_SUCCESS,
+			6 => CircuitMonitor::EVENT_REJECTION,
+            7 => CircuitMonitor::EVENT_REJECTION,
+            8 => CircuitMonitor::EVENT_REJECTION,
+            9 => CircuitMonitor::EVENT_REJECTION,
+            10 => CircuitMonitor::EVENT_REJECTION
+		]);
+
+        $this->timeProvider->set(60);
+
+		foreach ($this->cache->getContents() as $key => $value) {
+			$this->cache->set($key, (string)$value);
+		}
+
+
+		$results = $this->sut->getResultsForPreviousPeriod();
+        $this->assertSame(1, $results['successes']);
+        $this->assertSame(4, $results['failures']);
+        $this->assertSame(5, $results['rejections']);
+        $this->assertSame(5, $results['totalRequests']);
+
+		$failureRate = $results['failureRate'];
+        $this->assertEquals(80, $failureRate);
+		$this->assertTrue(is_numeric($failureRate));
+
+		$throttle = $results['throttle'];
+        $this->assertEquals(50, $throttle);
+		$this->assertTrue(is_numeric($throttle));
+	}
+
 }

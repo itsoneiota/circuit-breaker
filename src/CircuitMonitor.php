@@ -114,9 +114,9 @@ class CircuitMonitor {
 		$failuresKey = $keys['failures'];
 		$rejectionsKey = $keys['rejections'];
 
-		$successes = isset($results[$successesKey]) ? $results[$successesKey] : 0;
-		$failures = isset($results[$failuresKey]) ? $results[$failuresKey] : 0;
-		$rejections = isset($results[$rejectionsKey]) ? $results[$rejectionsKey] : 0;
+		$successes = isset($results[$successesKey]) ? intval($results[$successesKey]) : 0;
+		$failures = isset($results[$failuresKey]) ? intval($results[$failuresKey]) : 0;
+		$rejections = isset($results[$rejectionsKey]) ? intval($results[$rejectionsKey]) : 0;
 		$totalRequests = $successes + $failures;
 		$failureRate = $totalRequests != 0 ? round(($failures/$totalRequests)*100) : 0;
 		$totalAttempts = $totalRequests + $rejections;
