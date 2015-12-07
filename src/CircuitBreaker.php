@@ -55,6 +55,13 @@ class CircuitBreaker {
 		$this->minimumRequestsBeforeTrigger = $minimumRequestsBeforeTrigger;
 	}
 
+	public function setPercentageFailureThreshold($percentageFailureThreshold) {
+		if(!is_numeric($percentageFailureThreshold)){
+			throw new \InvalidArgumentException('percentageFailureThreshold must be an int.');
+		}
+		$this->percentageFailureThreshold = $percentageFailureThreshold;
+	}
+
 	public function setProbabilisticDynamics($probabilistic) {
 		if(!is_bool($probabilistic)){
 			throw new \InvalidArgumentException('probabilistic must be boolean.');

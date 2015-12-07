@@ -28,4 +28,22 @@ class CircuitBreakerBuilderTest extends \PHPUnit_Framework_TestCase {
 
         $breaker = $this->sut->build();
      }
+
+	 /**
+	  * It should configure the breaker.
+	  * @test
+	  */
+	  public function canConfigure() {
+		  $config = [
+			  	'percentageFailureThreshold' => 75,
+			  	'enabled' => true,
+				'samplePeriod' => 60,
+			    'minimumRequestsBeforeTrigger' => 3,
+			    'probabilisticDynamics' => true,
+			    'recoveryFactor' => 2
+		  ];
+		  $cb = \itsoneiota\circuitbreaker\CircuitBreakerBuilder::create($serviceName)
+			->withConfig($config)
+			->build();
+	  }
 }
