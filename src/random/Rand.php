@@ -7,7 +7,7 @@ namespace itsoneiota\circuitbreaker\random;
 class Rand implements RandomNumberGenerator {
 
     public function rand($min,$max){
-        return rand($min,$max);
+        return mt_rand($min,$max);
     }
 
 }

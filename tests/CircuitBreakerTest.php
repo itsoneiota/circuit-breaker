@@ -173,6 +173,26 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	}
 
 	/**
+	 * It should handle floats returned from throttle.
+	 * @test
+	 */
+	public function canHandleFloatThrottle() {
+		$this->sut->setProbabilisticDynamics(TRUE);
+
+		$this->circuitMonitor->previousResults = [
+			'successes'=>90,
+			'failures'=>10,
+			'rejections'=>0,
+			'totalRequests'=>100,
+			'failureRate'=>10.87687685,
+			'throttle'=>99.9
+		];
+
+		$this->assertTrue($this->sut->isClosed());
+		$this->assertThrottle(100);
+	}
+
+	/**
 	 * It should not snap to 100% closed after a period of limited throughput.
 	 * @test
 	 */

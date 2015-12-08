@@ -243,6 +243,32 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	}
 
 	/**
+	 * It should alter the recovery dynamics.
+	 * @test
+	 */
+	public function canIgnoreMinorErrorsWithRealisticStats() {
+		$this->sut->setProbabilisticDynamics(TRUE);
+		$periods = 10;
+		for ($p=0; $p < $periods; $p++) {
+			$time = ($p * 60) + 2;
+			$this->timeProvider->set($time);
+			$hundredsOfRequests = floor(rand(2,10));
+			for ($h=0; $h < $hundredsOfRequests; $h++) {
+
+				$failureRate = floor(rand(0,48));
+				for ($i=0; $i < 100; $i++) {
+					$this->assertTrue($this->sut->isClosed());
+					if ($i < $failureRate) {
+						$this->sut->registerFailure();
+					}else{
+						$this->sut->registerSuccess();
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Make 100 requests and check that the throttle rate is about right.
 	 */
 	protected function assertThrottle($rate){

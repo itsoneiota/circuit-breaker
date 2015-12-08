@@ -4,14 +4,19 @@ namespace itsoneiota\circuitbreaker\random;
 /**
  * Deterministic random number generator.
  * Used purely for CircuitBreakerTest, where it's always used 100 times.
- * So this class just returns 0 --> 99, on repeat.
+ * So this class just returns $min --> $max, on repeat.
  */
 class MockRandomNumberGenerator implements RandomNumberGenerator {
 
-    protected $counter = 0;
+    protected $counter = NULL;
 
     public function rand($min,$max){
-        return (++$this->counter) % 100;
+        if (NULL === $this->counter || $this->counter == $max){
+            $this->counter = $min;
+        }else{
+            $this->counter++;
+        }
+        return $this->counter;
     }
 
 }

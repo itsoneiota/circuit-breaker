@@ -123,7 +123,13 @@ class CircuitBreaker {
 	protected function isOperatingNormally($results) {
 		$insufficientRequests = $results['totalRequests'] < $this->minimumRequestsBeforeTrigger;
 		$failureRateBelowThreshold = $results['failureRate'] < $this->percentageFailureThreshold;
-		$recovering = $results['throttle'] < 100;
+
+		/**
+		 *  This is belt and braces.
+		 * By comparing throttle to the snapback value rather than 100,
+		 * we get a quick decision, and avoid the possibility of rejecting requests unnecessarily.
+		 */
+		$recovering = $results['throttle'] < self::THROTTLE_SNAPBACK;
 		return ($insufficientRequests || $failureRateBelowThreshold) && !$recovering;
 	}
 
@@ -163,8 +169,9 @@ class CircuitBreaker {
 		if($threshold > self::THROTTLE_SNAPBACK){
 			return TRUE;
 		}
-		$result = $this->random->rand(0,99) < $threshold;
-		return $result;
+
+		$closed = $this->random->rand(0,100) < $threshold;
+		return $closed;
 	}
 
 }
