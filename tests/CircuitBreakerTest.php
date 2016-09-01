@@ -17,6 +17,59 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	}
 
 	/**
+	 * It should return its monitor.
+	 * @test
+	 */
+	public function canSetMonitor() {
+		 $this->assertSame($this->circuitMonitor, $this->sut->getMonitor());
+	}
+
+	/**
+	 * It should throw an exception if enabled isn't boolean.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadEnabledValue() {
+		$this->sut->setEnabled('foo');
+	}
+
+	/**
+	 * It should throw an exception if minimumRequestsBeforeTrigger isn't int.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadMinRequests() {
+		$this->sut->setMinimumRequestsBeforeTrigger('foo');
+	}
+
+	/**
+	 * It should throw an exception if percentageFailureThreshold isn't int.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadPercentageFailureThreshold() {
+		$this->sut->setPercentageFailureThreshold('foo');
+	}
+
+	/**
+	 * It should throw an exception if probabilistic isn't boolean.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadProbabilisticDynamics() {
+		$this->sut->setProbabilisticDynamics('foo');
+	}
+
+	/**
+	 * It should throw an exception if recoveryFactor <= 1.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadRecoveryFactor() {
+		$this->sut->setRecoveryFactor(0.999);
+	}
+
+	/**
 	 * It should stay closed if no requests are made.
 	 * @test
 	 */
@@ -286,6 +339,40 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'throttle'=>80
 		];
 
+		$this->assertThrottle(100);
+	}
+
+	/**
+	 * It should close the circuit once the snap threshold is met.
+	 * @test
+	 */
+	public function canSnapBack() {
+		$this->sut->setProbabilisticDynamics(TRUE);
+		$this->sut->setRecoveryFactor(4.1);
+		$this->assertTrue($this->sut->isClosed());
+
+		$this->circuitMonitor->previousResults = [
+			'successes'=>20,
+			'failures'=>80,
+			'rejections'=>0,
+			'totalRequests'=>100,
+			'failureRate'=>80,
+			'throttle'=>100
+		];
+
+		$this->assertThrottle(20);
+
+		$this->circuitMonitor->previousResults = [
+			'successes'=>20,
+			'failures'=>0,
+			'rejections'=>80,
+			'totalRequests'=>20,
+			'failureRate'=>0,
+			'throttle'=>20
+		];
+
+		// Calculated throttle should = 82, > snapback threshold.
+		// So, circuit should be fully closed.
 		$this->assertThrottle(100);
 	}
 

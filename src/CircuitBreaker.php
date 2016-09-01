@@ -6,8 +6,6 @@ use itsoneiota\circuitbreaker\random\RandomNumberGenerator;
  */
 class CircuitBreaker {
 
-	// TODO: Inject a random number generator to make tests deterministic.
-
 	// If the circuit is fully open, and is letting 0 traffic through,
 	// this figure will be the percentage throttle in the next timestep.
 	const FIRST_RECOVERY_STEP = 10; // %
@@ -16,9 +14,11 @@ class CircuitBreaker {
 	// will 'snap' back to fully closed.
 	const THROTTLE_SNAPBACK = 80; // %
 
+	// Dependencies
 	protected $circuitMonitor;
 	protected $random;
 
+	// Configuration
 	protected $enabled = TRUE;
 	protected $percentageFailureThreshold = 50;
 	protected $minimumRequestsBeforeTrigger = 3;

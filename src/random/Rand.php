@@ -3,6 +3,7 @@ namespace itsoneiota\circuitbreaker\random;
 
 /**
  * Simple wrapper for rand();
+ * @codeCoverageIgnore
  */
 class Rand implements RandomNumberGenerator {
 

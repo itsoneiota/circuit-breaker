@@ -12,6 +12,6 @@ class FixedTimeProvider implements TimeProvider {
     }
 
     public function time(){
-        return $time;
+        return $this->time;
     }
 }

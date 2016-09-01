@@ -15,6 +15,14 @@ class CircuitMonitorTest extends \PHPUnit_Framework_TestCase {
 		$this->sut = new CircuitMonitor('myService', $this->cache, $this->timeProvider);
 	}
 
+	/**
+	 * It should return the service name.
+	 * @test
+	 */
+	public function canGetServiceName() {
+		$this->assertEquals('myService', $this->sut->getServiceName());
+	}
+
 	public function registerEvents(array $events){
 		foreach ($events as $time => $event) {
 			$this->timeProvider->set($time);
@@ -64,6 +72,106 @@ class CircuitMonitorTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(10, $results['totalRequests']);
         $this->assertEquals(70, $results['failureRate']);
         $this->assertEquals(100, $results['throttle']);
+	}
+
+	/**
+	 * It should reject a non-integer sample period.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadSamplePeriod() {
+		$this->sut->setSamplePeriod('foo');
+	}
+
+	/**
+	 * It should reject an unrecognised event.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadEvent() {
+		$this->sut->registerEvent('foo');
+	}
+
+	/**
+	 * It should detect a failure rate and open the switch.
+	 * @test
+	 */
+	public function canDetectFailureRateWithDifferentPeriod() {
+		$this->sut->setSamplePeriod(20);
+		$this->registerEvents([
+			1 => CircuitMonitor::EVENT_FAILURE,
+			2 => CircuitMonitor::EVENT_FAILURE,
+			3 => CircuitMonitor::EVENT_FAILURE,
+			4 => CircuitMonitor::EVENT_FAILURE,
+			5 => CircuitMonitor::EVENT_FAILURE,
+			6 => CircuitMonitor::EVENT_FAILURE,
+			7 => CircuitMonitor::EVENT_FAILURE,
+			8 => CircuitMonitor::EVENT_SUCCESS,
+			9 => CircuitMonitor::EVENT_SUCCESS,
+			10 => CircuitMonitor::EVENT_SUCCESS
+		]);
+
+		$this->timeProvider->set(20);
+		$results = $this->sut->getResultsForPreviousPeriod();
+
+		$this->assertEquals(3, $results['successes']);
+		$this->assertEquals(7, $results['failures']);
+		$this->assertEquals(0, $results['rejections']);
+		$this->assertEquals(10, $results['totalRequests']);
+		$this->assertEquals(70, $results['failureRate']);
+		$this->assertEquals(100, $results['throttle']);
+	}
+
+	/**
+	 * It should reject number of periods <= 0.
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function canRejectBadPeriodCount() {
+		$this->sut->getResultsForPreviousPeriods(0);
+	}
+
+	/**
+	 * It should return results for multiple periods.
+	 * @test
+	 */
+	public function canGetResultsForMultiplePeriods() {
+		$this->registerEvents([
+			1 => CircuitMonitor::EVENT_FAILURE,
+			2 => CircuitMonitor::EVENT_FAILURE,
+			3 => CircuitMonitor::EVENT_FAILURE,
+			4 => CircuitMonitor::EVENT_FAILURE,
+			5 => CircuitMonitor::EVENT_FAILURE,
+			6 => CircuitMonitor::EVENT_FAILURE,
+			7 => CircuitMonitor::EVENT_FAILURE,
+			8 => CircuitMonitor::EVENT_SUCCESS,
+			9 => CircuitMonitor::EVENT_SUCCESS,
+			10 => CircuitMonitor::EVENT_SUCCESS
+		]);
+
+		$this->timeProvider->set(60);
+		$a = $this->sut->getResultsForPreviousPeriod();
+
+		$this->registerEvents([
+			61 => CircuitMonitor::EVENT_FAILURE,
+			62 => CircuitMonitor::EVENT_FAILURE,
+			63 => CircuitMonitor::EVENT_FAILURE,
+			64 => CircuitMonitor::EVENT_SUCCESS,
+			65 => CircuitMonitor::EVENT_SUCCESS,
+			66 => CircuitMonitor::EVENT_FAILURE,
+			67 => CircuitMonitor::EVENT_FAILURE,
+			68 => CircuitMonitor::EVENT_SUCCESS,
+			69 => CircuitMonitor::EVENT_SUCCESS,
+			70 => CircuitMonitor::EVENT_FAILURE
+		]);
+
+		$this->timeProvider->set(120);
+		$b = $this->sut->getResultsForPreviousPeriod();
+
+		$lastTwo = $this->sut->getResultsForPreviousPeriods(2);
+
+		$this->assertEquals($a, $lastTwo["0"]);
+		$this->assertEquals($b, $lastTwo["60"]);
 	}
 
 	/**

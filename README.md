@@ -24,7 +24,7 @@ The easiest way to build a circuit breaker is with the builder class.
 
 	$this->breaker = CircuitBreakerBuilder::create('myService')->withCache($cache)->build();
 
-Where `myService` is the name of my service, and `$cache` is an `\itsoneiota\cache\Cache` instance. All circuit breakers using the same cache and service name will share their statistics and will be open and closed together.
+Where `myService` is the name of a service you depend on, and `$cache` is an `\itsoneiota\cache\Cache` instance. All circuit breakers using the same cache and service name will share their statistics and will be open and closed together.
 
 ### Isolating Remote Service Calls
 So, let's say we're calling a remote service, and we want to protect ourselves from it having a bad day.
