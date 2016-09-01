@@ -113,16 +113,16 @@ class CircuitBreaker {
 			return TRUE;
 		}
 		$resultsForPreviousPeriod = $this->circuitMonitor->getResultsForPreviousPeriod();
-		if($this->isOperatingNormally($resultsForPreviousPeriod)){
-			return TRUE;
-		}else{
+		if($this->hasTripped($resultsForPreviousPeriod)){
 			return $this->tripResponse($resultsForPreviousPeriod);
+		}else{
+			return TRUE;
 		}
 	}
 
-	protected function isOperatingNormally($results) {
-		$insufficientRequests = $results['totalRequests'] < $this->minimumRequestsBeforeTrigger;
-		$failureRateBelowThreshold = $results['failureRate'] < $this->percentageFailureThreshold;
+	protected function hasTripped($results) {
+		$sufficientRequests = $results['totalRequests'] >= $this->minimumRequestsBeforeTrigger;
+		$failureRateMeetsThreshold = $results['failureRate'] >= $this->percentageFailureThreshold;
 
 		/**
 		 *  This is belt and braces.
@@ -130,7 +130,7 @@ class CircuitBreaker {
 		 * we get a quick decision, and avoid the possibility of rejecting requests unnecessarily.
 		 */
 		$recovering = $results['throttle'] < self::THROTTLE_SNAPBACK;
-		return ($insufficientRequests || $failureRateBelowThreshold) && !$recovering;
+		return ($sufficientRequests && $failureRateMeetsThreshold) || $recovering;
 	}
 
 	/**
