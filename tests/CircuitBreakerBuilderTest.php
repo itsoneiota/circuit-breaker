@@ -42,7 +42,7 @@ class CircuitBreakerBuilderTest extends \PHPUnit_Framework_TestCase {
 			    'probabilisticDynamics' => true,
 			    'recoveryFactor' => 2
 		  ];
-		  $cb = \itsoneiota\circuitbreaker\CircuitBreakerBuilder::create($serviceName)
+		  $cb = \itsoneiota\circuitbreaker\CircuitBreakerBuilder::create('myService')
 			->withConfig($config)
 			->build();
 	  }
