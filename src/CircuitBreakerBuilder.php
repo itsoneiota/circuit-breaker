@@ -4,6 +4,7 @@ use \itsoneiota\cache\Cache;
 use \itsoneiota\circuitbreaker\time\TimeProvider;
 use \itsoneiota\circuitbreaker\time\SystemTimeProvider;
 use itsoneiota\circuitbreaker\random\RandomNumberGenerator;
+use \itsoneiota\count\StatsD;
 
 class CircuitBreakerBuilder {
 
@@ -16,6 +17,7 @@ class CircuitBreakerBuilder {
     protected $timeProvider;
     protected $random;
     protected $samplePeriod = CircuitMonitor::SAMPLE_PERIOD_DEFAULT;
+    protected $stats;
     protected $config = [];
 
     public static function create($serviceName){
@@ -130,6 +132,11 @@ class CircuitBreakerBuilder {
         return $this;
     }
 
+    public function withStatsCollector(StatsD $stats){
+      $this->stats = $stats;
+      return $this;
+    }
+
     protected function buildMemcached(){
         $memcached = new \Memcached();
         $memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL, TRUE);
@@ -212,6 +219,9 @@ class CircuitBreakerBuilder {
         $monitor = $this->buildMonitor();
         $random = $this->getRandomNumberGenerator();
 		$cb = new CircuitBreaker($monitor, $random);
+        if($this->stats){
+          $cb->setStatsCollector($this->stats, "circuitbreaker.{$this->serviceName}");
+        }
         $this->configureBreaker($cb);
 
         return $cb;

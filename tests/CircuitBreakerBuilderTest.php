@@ -46,4 +46,17 @@ class CircuitBreakerBuilderTest extends \PHPUnit_Framework_TestCase {
 			->withConfig($config)
 			->build();
 	  }
+
+    /**
+      * It should set the statsd instance.
+      * @test
+      */
+    public function canSetStatsCollector(){
+      $stats = new \itsoneiota\count\MockStatsD();
+      $cb = \itsoneiota\circuitbreaker\CircuitBreakerBuilder::create('myService')
+        ->withStatsCollector($stats)
+        ->build();
+      $cb->registerFailure();
+      $this->assertEquals(1, $stats->getCounter('circuitbreaker.myService.failure'));
+    }
 }

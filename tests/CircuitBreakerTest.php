@@ -1,6 +1,7 @@
 <?php
 namespace itsoneiota\circuitbreaker;
 use itsoneiota\circuitbreaker\random\MockRandomNumberGenerator;
+use itsoneiota\count\MockStatsD;
 /**
  * Tests for CircuitBreaker.
  *
@@ -14,6 +15,8 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->circuitMonitor = new MockCircuitMonitor();
 		$this->random = new MockRandomNumberGenerator();
 		$this->sut = new CircuitBreaker($this->circuitMonitor, $this->random);
+        $this->stats = new MockStatsD();
+        $this->sut->setStatsCollector($this->stats, 'circuitbreaker.myService');
 	}
 
 	/**
@@ -99,6 +102,10 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->assertEquals(3, $this->circuitMonitor->events[CircuitMonitor::EVENT_SUCCESS]);
 		$this->assertEquals(5, $this->circuitMonitor->events[CircuitMonitor::EVENT_FAILURE]);
 		$this->assertEquals(2, $this->circuitMonitor->events[CircuitMonitor::EVENT_REJECTION]);
+
+        $this->assertEquals(3, $this->stats->getCounter('circuitbreaker.myService.success'));
+        $this->assertEquals(5, $this->stats->getCounter('circuitbreaker.myService.failure'));
+        $this->assertEquals(2, $this->stats->getCounter('circuitbreaker.myService.rejection'));
 	}
 
 	/**

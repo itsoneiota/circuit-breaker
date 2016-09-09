@@ -1,6 +1,7 @@
 <?php
 namespace itsoneiota\circuitbreaker;
 use itsoneiota\circuitbreaker\random\RandomNumberGenerator;
+use itsoneiota\count\StatsD;
 /**
  * A device used to detect high failure rates in calls to dependencies.
  */
@@ -17,6 +18,8 @@ class CircuitBreaker {
 	// Dependencies
 	protected $circuitMonitor;
 	protected $random;
+    protected $stats;
+    protected $statsPrefix;
 
 	// Configuration
 	protected $enabled = TRUE;
@@ -76,13 +79,18 @@ class CircuitBreaker {
 		$this->recoveryFactor = $recoveryFactor;
 	}
 
+    public function setStatsCollector(StatsD $stats, $prefix){
+      $this->stats = $stats;
+      $this->statsPrefix = $prefix;
+    }
+
 	/**
 	 * Register a successful request to the service.
 	 *
 	 * @return void
 	 */
 	public function registerSuccess() {
-		$this->circuitMonitor->registerEvent(CircuitMonitor::EVENT_SUCCESS);
+		$this->registerEvent(CircuitMonitor::EVENT_SUCCESS);
 	}
 
 	/**
@@ -91,7 +99,7 @@ class CircuitBreaker {
 	 * @return void
 	 */
 	public function registerFailure() {
-		$this->circuitMonitor->registerEvent(CircuitMonitor::EVENT_FAILURE);
+		$this->registerEvent(CircuitMonitor::EVENT_FAILURE);
 	}
 
 	/**
@@ -100,8 +108,15 @@ class CircuitBreaker {
 	 * @return void
 	 */
 	public function registerRejection() {
-		$this->circuitMonitor->registerEvent(CircuitMonitor::EVENT_REJECTION);
+		$this->registerEvent(CircuitMonitor::EVENT_REJECTION);
 	}
+
+    protected function registerEvent($event){
+      $this->circuitMonitor->registerEvent($event);
+      if($this->stats){
+        $this->stats->increment("{$this->statsPrefix}.{$event}");
+      }
+    }
 
 	/**
 	 * Is the circuit closed (i.e. functioning)?
