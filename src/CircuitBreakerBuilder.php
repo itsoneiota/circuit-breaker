@@ -152,7 +152,7 @@ class CircuitBreakerBuilder {
         $mc = $this->buildMemcached();
         $keyPrefix = 'CircuitBreaker-'.$this->serviceName;
         $expiration = $this->samplePeriod * 100;
-        $cache = new \itsoneiota\cache\Cache($mc, $keyPrefix, $expiration);
+        $cache = new \itsoneiota\cache\Memcached($mc, $keyPrefix, $expiration);
         return $cache;
     }
 
