@@ -167,8 +167,8 @@ class CircuitBreakerBuilder {
         if(NULL === $cache && NULL !== $this->memcachedHost){
             $cache = $this->tryCacheBuilder([$this,'buildCacheFromMemcachedServer']);
         }
-        if(NULL !== $cache){
-            return new \itsoneiota\cache\InMemoryCacheFront($cache);
+        if($cache){
+            return $cache;
         }
         return new \itsoneiota\cache\InMemoryCache();
     }
