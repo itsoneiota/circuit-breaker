@@ -1,6 +1,6 @@
 <?php
 namespace itsoneiota\circuitbreaker;
-use \itsoneiota\cache\Cache;
+use \itsoneiota\cache\Counter;
 use \itsoneiota\circuitbreaker\time\TimeProvider;
 use \itsoneiota\circuitbreaker\time\SystemTimeProvider;
 use itsoneiota\circuitbreaker\random\RandomNumberGenerator;
@@ -10,8 +10,8 @@ class CircuitBreakerBuilder {
 
     protected $serviceName;
     protected $logger;
-    protected $cache;
-    protected $cacheBuilder;
+    protected $counter;
+    protected $counterBuilder;
     protected $memcachedHost;
     protected $memcachedPort;
     protected $timeProvider;
@@ -50,13 +50,13 @@ class CircuitBreakerBuilder {
         return $this;
     }
 
-    public function withCache(Cache $cache=NULL){
-        $this->cache = $cache;
+    public function withCache(Counter $counter=NULL){
+        $this->counter = $counter;
         return $this;
     }
 
-    public function withCacheBuilder(callable $cacheBuilder){
-        $this->cacheBuilder = $cacheBuilder;
+    public function withCounterBuilder(callable $counterBuilder){
+        $this->counterBuilder = $counterBuilder;
         return $this;
     }
 
@@ -148,47 +148,47 @@ class CircuitBreakerBuilder {
         return $memcached;
     }
 
-    protected function buildCacheFromMemcachedServer(){
+    protected function buildCounterFromMemcachedServer(){
         $mc = $this->buildMemcached();
         $keyPrefix = 'CircuitBreaker-'.$this->serviceName;
         $expiration = $this->samplePeriod * 100;
-        $cache = new \itsoneiota\cache\Memcached($mc, $keyPrefix, $expiration);
-        return $cache;
+        $counter = new \itsoneiota\cache\MemcachedCounter($mc, $keyPrefix, $expiration);
+        return $counter;
     }
 
-    protected function buildCache(){
-        if(NULL !== $this->cache){
-            return $this->cache;
+    protected function buildCounter(){
+        if(NULL !== $this->counter){
+            return $this->counter;
         }
-        $cache = NULL;
-        if(NULL !== $this->cacheBuilder){
-            $cache = $this->tryCacheBuilder($this->cacheBuilder);
+        $counter = NULL;
+        if(NULL !== $this->counterBuilder){
+            $counter = $this->tryCounterBuilder($this->counterBuilder);
         }
-        if(NULL === $cache && NULL !== $this->memcachedHost){
-            $cache = $this->tryCacheBuilder([$this,'buildCacheFromMemcachedServer']);
+        if(NULL === $counter && NULL !== $this->memcachedHost){
+            $counter = $this->tryCacheBuilder([$this,'buildCacheFromMemcachedServer']);
         }
-        if($cache){
-            return $cache;
+        if($counter){
+            return $counter;
         }
-        return new \itsoneiota\cache\InMemoryCache();
+        return new \itsoneiota\cache\InMemoryCounter();
     }
 
-    protected function tryCacheBuilder(callable $builder){
+    protected function tryCounterBuilder(callable $builder){
         try {
-            $cache = $builder();
-            if(is_object($cache) && is_a($cache, '\itsoneiota\cache\Cache')){
-                return $cache;
+            $counter = $builder();
+            if(is_object($counter) && is_a($counter, '\itsoneiota\cache\Counter')){
+                return $counter;
             }
         } catch (\Exception $e) {
-            $this->logError('Failed to build cache. ' . $e->getMessage());
+            $this->logError('Failed to build counter. ' . $e->getMessage());
         }
         return NULL;
     }
 
     public function buildMonitor(){
-        $cache = $this->buildCache();
+        $counter = $this->buildCounter();
 		$timeProvider = NULL !== $this->timeProvider ? $this->timeProvider : new SystemTimeProvider();
-		return new CircuitMonitor($this->serviceName, $cache, $timeProvider, $this->samplePeriod);
+		return new CircuitMonitor($this->serviceName, $counter, $timeProvider, $this->samplePeriod);
     }
 
     protected function configureBreaker(CircuitBreaker $breaker){

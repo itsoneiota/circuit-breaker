@@ -13,12 +13,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/itsoneiota/cache.git",
-                "reference": "cca0b6a91e5a58d690438f16e0f83e2a47222852"
+                "reference": "30b995c63eaa1c1e2f4141ba494f6ee3b48a7a4b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/itsoneiota/cache/zipball/cca0b6a91e5a58d690438f16e0f83e2a47222852",
-                "reference": "cca0b6a91e5a58d690438f16e0f83e2a47222852",
+                "url": "https://api.github.com/repos/itsoneiota/cache/zipball/30b995c63eaa1c1e2f4141ba494f6ee3b48a7a4b",
+                "reference": "30b995c63eaa1c1e2f4141ba494f6ee3b48a7a4b",
                 "shasum": ""
             },
             "require": {
@@ -49,7 +49,7 @@
             "keywords": [
                 "cache"
             ],
-            "time": "2016-10-13 14:14:47"
+            "time": "2016-10-31 21:42:16"
         },
         {
             "name": "itsoneiota/count",

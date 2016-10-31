@@ -17,12 +17,12 @@ class CircuitBreakerBuilderTest extends \PHPUnit_Framework_TestCase {
      * @test
      */
      public function canLogBuildFailures() {
-        $badCacheBuilder = function(){
+        $badCounterBuilder = function(){
             throw new \Exception('Failed to build cache.');
         };
 
         $logger = $this->getMockBuilder('\Psr\Log\LoggerInterface')->disableOriginalConstructor()->getMock();
-        $this->sut->withLogger($logger)->withCacheBuilder($badCacheBuilder);
+        $this->sut->withLogger($logger)->withCounterBuilder($badCounterBuilder);
 
         $logger->expects($this->once())->method('critical');
 

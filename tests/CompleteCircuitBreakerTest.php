@@ -12,7 +12,7 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	protected $cache;
 
 	public function setUp() {
-		$this->cache = new \itsoneiota\cache\MockCache();
+		$this->cache = new \itsoneiota\cache\MockCounter();
 		$this->startTime = 1407424500;
 		$this->timeProvider = new time\MockTimeProvider($this->startTime);
 		$this->random = new MockRandomNumberGenerator();

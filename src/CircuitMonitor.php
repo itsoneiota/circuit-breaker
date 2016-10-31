@@ -25,7 +25,7 @@ class CircuitMonitor {
 	 * @param itsoneiota\circuitbreaker\time\TimeProvider $timeProvider Time provider.
 
 	 */
-	public function __construct( $serviceName, \itsoneiota\cache\Cache $cache, time\TimeProvider $timeProvider, $samplePeriod=self::SAMPLE_PERIOD_DEFAULT) {
+	public function __construct( $serviceName, \itsoneiota\cache\Counter $cache, time\TimeProvider $timeProvider, $samplePeriod=self::SAMPLE_PERIOD_DEFAULT) {
 		$this->serviceName = $serviceName;
 		$this->cache = $cache;
 		$this->timeProvider = $timeProvider;

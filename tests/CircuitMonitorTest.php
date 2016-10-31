@@ -9,7 +9,7 @@ class CircuitMonitorTest extends \PHPUnit_Framework_TestCase {
 	protected $sut;
 
 	public function setUp() {
-		$this->cache = new \itsoneiota\cache\MockCache();
+		$this->cache = new \itsoneiota\cache\MockCounter();
 		$this->startTime = 1407424500;
 		$this->timeProvider = new time\MockTimeProvider($this->startTime);
 		$this->sut = new CircuitMonitor('myService', $this->cache, $this->timeProvider);
