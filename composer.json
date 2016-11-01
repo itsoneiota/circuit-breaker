@@ -2,18 +2,18 @@
 	"name":"itsoneiota/circuit-breaker",
 	"description": "One iota Circuit Breaker",
 	"type":"library",
-    "keywords": ["Circuit Breaker"],
-    "homepage": "http://itsoneiota.com",
-    "authors": [
-        {
-            "name": "Ross McFarlane",
-            "email": "ross.mcfarlane@itsoneiota.com"
-        }
-    ],
-    "license":"proprietary",
+	"keywords": ["Circuit Breaker"],
+	"homepage": "http://itsoneiota.com",
+	"authors": [
+		{
+			"name": "Ross McFarlane",
+			"email": "ross.mcfarlane@itsoneiota.com"
+		}
+	],
+	"license":"proprietary",
 	"require":{
-		"php":">=5.4",
-        "itsoneiota/cache": "*@dev",
+		"php":">=5.5",
+		"itsoneiota/cache": "*@dev",
 		"psr/log": "^1.0",
 		"itsoneiota/count": "dev-master"
 	},
@@ -21,8 +21,8 @@
 		"phpunit/phpunit": "*"
 	},
 	"autoload": {
-        "psr-4": {
-            "itsoneiota\\circuitbreaker\\": "src/"
-        }
-    }
+		"psr-4": {
+			"itsoneiota\\circuitbreaker\\": "src/"
+		}
+	}
 }
