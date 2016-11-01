@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "752a364968713e5a168629efe0ee5beb",
-    "content-hash": "347c24d92b4f1efaa17044b288c4c8df",
+    "hash": "c5eb7f27eb7c6344cb5e514a437eac7c",
+    "content-hash": "9c9b7a4abd96c5096d653ff2b9899141",
     "packages": [
         {
             "name": "itsoneiota/cache",
@@ -13,16 +13,16 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/itsoneiota/cache.git",
-                "reference": "30b995c63eaa1c1e2f4141ba494f6ee3b48a7a4b"
+                "reference": "2b86b5767411a9c0c35705ea9a751e92cad815b3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/itsoneiota/cache/zipball/30b995c63eaa1c1e2f4141ba494f6ee3b48a7a4b",
-                "reference": "30b995c63eaa1c1e2f4141ba494f6ee3b48a7a4b",
+                "url": "https://api.github.com/repos/itsoneiota/cache/zipball/2b86b5767411a9c0c35705ea9a751e92cad815b3",
+                "reference": "2b86b5767411a9c0c35705ea9a751e92cad815b3",
                 "shasum": ""
             },
             "require": {
-                "php": ">=5.3.5",
+                "php": ">=5.5",
                 "predis/predis": "^1.1"
             },
             "require-dev": {
@@ -49,7 +49,7 @@
             "keywords": [
                 "cache"
             ],
-            "time": "2016-10-31 21:42:16"
+            "time": "2016-11-01 09:04:50"
         },
         {
             "name": "itsoneiota/count",
@@ -1284,7 +1284,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=5.4"
+        "php": ">=5.5"
     },
     "platform-dev": []
 }
