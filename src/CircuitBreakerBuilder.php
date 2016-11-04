@@ -165,7 +165,7 @@ class CircuitBreakerBuilder {
             $counter = $this->tryCounterBuilder($this->counterBuilder);
         }
         if(NULL === $counter && NULL !== $this->memcachedHost){
-            $counter = $this->tryCacheBuilder([$this,'buildCacheFromMemcachedServer']);
+            $counter = $this->tryCounterBuilder([$this,'buildCounterFromMemcachedServer']);
         }
         if($counter){
             return $counter;

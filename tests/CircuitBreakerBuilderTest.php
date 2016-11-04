@@ -59,4 +59,23 @@ class CircuitBreakerBuilderTest extends \PHPUnit_Framework_TestCase {
       $cb->registerFailure();
       $this->assertEquals(1, $stats->getCounter('circuitbreaker.myService.failure'));
     }
+
+	/**
+	 * @test
+	 */
+	public function canFailOverToInMemoryCounter(){
+		$cb = \itsoneiota\circuitbreaker\CircuitBreakerBuilder::create('myService')
+			->build();
+		$this->assertTrue(TRUE);
+	}
+
+	/**
+	 * @test
+	 */
+	public function canBuildCounterFromMemcachedServer(){
+		$cb = \itsoneiota\circuitbreaker\CircuitBreakerBuilder::create('myService')
+			->withMemcachedServer('localhost','1001')
+			->build();
+		$this->assertTrue(TRUE);
+	}
 }
