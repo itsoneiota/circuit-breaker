@@ -138,6 +138,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canOpenWithFailure() {
+		$this->sut->setProbabilisticDynamics(false);
 		$this->assertTrue($this->sut->isClosed());
 
 		$this->circuitMonitor->previousResults = [
@@ -157,6 +158,7 @@ class CircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canStayClosedWhenDisabled() {
+		$this->sut->setProbabilisticDynamics(false);
 		$this->circuitMonitor->previousResults = [
 			'successes'=>4,
 			'failures'=>6,
