@@ -26,10 +26,12 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	public function registerRequests(array $requests){
 		foreach ($requests as $time => $success) {
 			$this->timeProvider->set($time);
-			if ($success) {
+			if ($success===TRUE) {
 				$this->sut->registerSuccess();
-			}else{
+			}elseif($success===FALSE){
 				$this->sut->registerFailure();
+			}else{
+				$this->sut->registerRejection();
 			}
 		}
 	}
@@ -50,6 +52,7 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canDetectFailureRate() {
+		$this->sut->setProbabilisticDynamics(FALSE);
 		$this->assertTrue($this->sut->isClosed());
 
 		$this->sut->registerFailure();
@@ -116,7 +119,7 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 			'minimumRequestsBeforeTrigger'=>5
 		];
 		$this->sut = CircuitBreakerBuilder::create('myService')->withConfig($config)->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
-
+		$this->sut->setProbabilisticDynamics(FALSE);
 		$this->assertTrue($this->sut->isClosed());
 
 		$this->timeProvider->set(0);
@@ -143,6 +146,60 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->sut->registerFailure();
 		$this->timeProvider->set(60);
 		$this->assertFalse($this->sut->isClosed());
+	}
+
+	/**
+	 * It should reclose and throttle up even when rejecting every call..
+	 * @test
+	 */
+	public function canCloseAfterOpeningProbablistic() {
+		$config = [
+			'minimumRequestsBeforeTrigger'=>3
+		];
+		$this->sut = CircuitBreakerBuilder::create('myService')->withConfig($config)->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
+		$this->sut->setProbabilisticDynamics(FALSE);
+		//Check that the CB is initially closed.
+		$this->assertTrue($this->sut->isClosed());
+		//trip it
+		$this->registerRequests([
+				1 => FALSE,
+				2 => FALSE,
+				3 => FALSE,
+				4 => FALSE,
+				5 => FALSE,
+				6 => FALSE,
+				7 => FALSE,
+				8 => FALSE,
+				9 => TRUE,
+				10 => TRUE
+			]);
+		$this->timeProvider->set(60);
+		$this->assertFalse($this->sut->isClosed());
+		$this->assertThrottle(0);
+		//Reject all the things..
+		$this->registerRequests([
+				1 => "rejection",
+				2 => "rejection",
+				3 => "rejection",
+				4 => "rejection",
+				5 => "rejection",
+				6 => "rejection",
+				7 => "rejection",
+				8 => "rejection",
+				9 => "rejection",
+				10 => "rejection"
+			]);
+		$this->timeProvider->set(120);
+		//Still open?
+		$this->assertFalse($this->sut->isClosed(true));
+		$this->assertThrottle(0);
+		
+		//wait til we've had no requests Theoretically this is what we want to happen, and will re-close after a while..
+		//But.. this doesn't happen, we keep getting rejections, so we'll keep it open.
+		//Need to test and fix this. and have a way to manually override this break.
+		$this->timeProvider->set(250);
+		$this->assertTrue($this->sut->isClosed());
+		$this->assertThrottle(100);
 	}
 
 	/**
@@ -283,5 +340,7 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		}
 		$this->assertEquals($rate, $timesClosed, "Closed $timesClosed times. Expected $rate");
 	}
+
+	
 
 }

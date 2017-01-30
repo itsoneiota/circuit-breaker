@@ -25,7 +25,7 @@ class CircuitBreaker {
 	protected $enabled = TRUE;
 	protected $percentageFailureThreshold = 50;
 	protected $minimumRequestsBeforeTrigger = 3;
-	protected $isProbabilistic = FALSE;
+	protected $isProbabilistic = TRUE;
 	protected $recoveryFactor = 2;
 
 	/**
@@ -145,6 +145,7 @@ class CircuitBreaker {
 		 * we get a quick decision, and avoid the possibility of rejecting requests unnecessarily.
 		 */
 		$recovering = $results['throttle'] < self::THROTTLE_SNAPBACK;
+		
 		return ($sufficientRequests && $failureRateMeetsThreshold) || $recovering;
 	}
 
@@ -163,7 +164,11 @@ class CircuitBreaker {
 	 */
 	protected function tripResponse($prev) {
 		if(!$this->isProbabilistic){
+			//If we're deterministic, the switch is either open or closed. this is maybe not ideal. as if we're at 100 percent and rejecting everything the CB will never close again. 
+			//But if we ramp it up again, we may as well be using the probabilistic version. 
+			//I think it's fine to keep this as is, for circuits that require human interaction to resolve. But in that case we'll need a manual way to override it. 
 			return FALSE;
+			
 		}
 		$successRate = 100-$prev['failureRate'];
 
@@ -182,10 +187,12 @@ class CircuitBreaker {
 		$threshold = min($successRate, $newThrottle);
 
 		if($threshold > self::THROTTLE_SNAPBACK){
+			
 			return TRUE;
 		}
 
 		$closed = $this->random->rand(0,100) < $threshold;
+		
 		return $closed;
 	}
 
