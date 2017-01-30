@@ -26,9 +26,9 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	public function registerRequests(array $requests){
 		foreach ($requests as $time => $success) {
 			$this->timeProvider->set($time);
-			if ($success==TRUE) {
+			if ($success===TRUE) {
 				$this->sut->registerSuccess();
-			}elseif($success==FALSE){
+			}elseif($success===FALSE){
 				$this->sut->registerFailure();
 			}else{
 				$this->sut->registerRejection();

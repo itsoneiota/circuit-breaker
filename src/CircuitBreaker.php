@@ -164,7 +164,7 @@ class CircuitBreaker {
 	 */
 	protected function tripResponse($prev) {
 		if(!$this->isProbabilistic){
-			//If we're deterministic, the switch is either open or closed. this is maybe not ideall. as if we're at 100 percent and rejecting everything the CB will never close again. 
+			//If we're deterministic, the switch is either open or closed. this is maybe not ideal. as if we're at 100 percent and rejecting everything the CB will never close again. 
 			//But if we ramp it up again, we may as well be using the probabilistic version. 
 			//I think it's fine to keep this as is, for circuits that require human interaction to resolve. But in that case we'll need a manual way to override it. 
 			return FALSE;
