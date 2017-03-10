@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "c5eb7f27eb7c6344cb5e514a437eac7c",
-    "content-hash": "9c9b7a4abd96c5096d653ff2b9899141",
+    "hash": "03abe54760af536cb4b0496777bc90c3",
+    "content-hash": "8aa0d9bbe5b586e82006293963a78894",
     "packages": [
         {
             "name": "itsoneiota/cache",
@@ -53,7 +53,7 @@
         },
         {
             "name": "itsoneiota/count",
-            "version": "dev-master",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/itsoneiota/count.git",
@@ -1278,8 +1278,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "itsoneiota/cache": 20,
-        "itsoneiota/count": 20
+        "itsoneiota/cache": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
