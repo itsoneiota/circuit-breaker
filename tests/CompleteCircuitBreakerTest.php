@@ -73,7 +73,7 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 	 * @test
 	 */
 	public function canDisableButStillRecordMetrics() {
-		$this->sut = CircuitBreakerBuilder::create('myService')->disabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
+		$this->sut = CircuitBreakerBuilder::create('myService')->disabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->withDeterministicDynamics()->build();
 		$this->assertTrue($this->sut->isClosed());
 
 		$this->sut->registerFailure();
@@ -88,7 +88,7 @@ class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 		$this->timeProvider->set($this->startTime + 60);
 		$this->assertTrue($this->sut->isClosed());
 
-		$enabledClone = CircuitBreakerBuilder::create('myService')->enabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->build();
+		$enabledClone = CircuitBreakerBuilder::create('myService')->enabled()->withCache($this->cache)->withTimeProvider($this->timeProvider)->withDeterministicDynamics()->build();
 		$this->assertFalse($enabledClone->isClosed());
 	}
 

@@ -15,7 +15,7 @@
 		"php":">=5.5",
 		"itsoneiota/cache": "*@dev",
 		"psr/log": "^1.0",
-		"itsoneiota/count": "dev-master"
+		"itsoneiota/count": "^1.0"
 	},
 	"require-dev":{
 		"phpunit/phpunit": "*"
