@@ -8,7 +8,10 @@ use itsoneiota\circuitbreaker\random\MockRandomNumberGenerator;
  **/
 class CompleteCircuitBreakerTest extends \PHPUnit_Framework_TestCase {
 
-	protected $sut;
+    /**
+     * @var CircuitBreaker
+     */
+    protected $sut;
 	protected $cache;
 
 	public function setUp() {

@@ -1,8 +1,14 @@
 <?php
+
 namespace itsoneiota\circuitbreaker;
+
 use itsoneiota\circuitbreaker\random\RandomNumberGenerator;
 use itsoneiota\count\StatsD;
+
 /**
+ * Class CircuitBreaker
+ * @package itsoneiota\circuitbreaker
+ *
  * A device used to detect high failure rates in calls to dependencies.
  */
 class CircuitBreaker {
@@ -18,7 +24,8 @@ class CircuitBreaker {
 	// Dependencies
 	protected $circuitMonitor;
 	protected $random;
-    protected $stats;
+    /** @var StatsD */
+	protected $stats;
     protected $statsPrefix;
 
 	// Configuration
@@ -28,13 +35,12 @@ class CircuitBreaker {
 	protected $isProbabilistic = TRUE;
 	protected $recoveryFactor = 2;
 
-	/**
-	 * Constructor
-	 *
-	 * @param string $serviceName Name of the service. Used in cache keys.
-	 * @param itsoneiota\circuitbreaker\CircuitMonitor $circuitMonitor
-	 * @param itsoneiota\circuitbreaker\random\RandomNumberGenerator $random
-	 */
+    /**
+     * CircuitBreaker constructor.
+     *
+     * @param CircuitMonitor        $circuitMonitor
+     * @param RandomNumberGenerator $random
+     */
 	public function __construct(CircuitMonitor $circuitMonitor, RandomNumberGenerator $random) {
 		$this->circuitMonitor = $circuitMonitor;
 		$this->random = $random;
@@ -79,7 +85,11 @@ class CircuitBreaker {
 		$this->recoveryFactor = $recoveryFactor;
 	}
 
-    public function setStatsCollector(StatsD $stats, $prefix){
+    /**
+     * @param StatsD $stats
+     * @param string $prefix
+     */
+	public function setStatsCollector(StatsD $stats, $prefix){
       $this->stats = $stats;
       $this->statsPrefix = $prefix;
     }
@@ -121,7 +131,7 @@ class CircuitBreaker {
 	/**
 	 * Is the circuit closed (i.e. functioning)?
 	 *
-	 * @return void
+	 * @return bool
 	 */
 	public function isClosed() {
 		if(!$this->enabled){
@@ -135,6 +145,13 @@ class CircuitBreaker {
 		}
 	}
 
+    /**
+     * Has the circuit been tripped?
+     *
+     * @param $results
+     *
+     * @return bool
+     */
 	protected function hasTripped($results) {
 		$sufficientRequests = $results['totalRequests'] >= $this->minimumRequestsBeforeTrigger;
 		$failureRateMeetsThreshold = $results['failureRate'] >= $this->percentageFailureThreshold;
@@ -159,7 +176,7 @@ class CircuitBreaker {
 	 *
 	 * If the circuit dynamics are deterministic, the circuit will be open.
 	 *
-	 * @param array $resultsForPreviousPeriod Results from the previous time period.
+	 * @param array $prev Results from the previous time period.
 	 * @return boolean
 	 */
 	protected function tripResponse($prev) {
