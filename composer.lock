@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "da9f6901cb5b0d61db0fd6f21aa5fb8e",
+    "content-hash": "eac82a0b98fad35ac1f152d6a59f838c",
     "packages": [
         {
             "name": "cheprasov/php-redis-client",
@@ -49,21 +49,15 @@
         },
         {
             "name": "itsoneiota/cache",
-            "version": "dev-master",
+            "version": "1.9",
             "source": {
                 "type": "git",
-                "url": "https://github.com/itsoneiota/cache.git",
-                "reference": "38e10bf8e518746affaed65e5cbb692ca0029b6b"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/itsoneiota/cache/zipball/38e10bf8e518746affaed65e5cbb692ca0029b6b",
-                "reference": "38e10bf8e518746affaed65e5cbb692ca0029b6b",
-                "shasum": ""
+                "url": "https://github.com/itsoneiota/cache",
+                "reference": "a4d5f412f3c4096543eac0324221b5e5791909c6"
             },
             "require": {
                 "cheprasov/php-redis-client": "1.7.2",
-                "itsoneiota/count": "1.0.0",
+                "itsoneiota/count": "2.0.2",
                 "php": ">=5.5",
                 "predis/predis": "^1.1"
             },
@@ -76,7 +70,6 @@
                     "itsoneiota\\cache\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "proprietary"
             ],
@@ -91,27 +84,21 @@
             "keywords": [
                 "cache"
             ],
-            "time": "2017-11-16T11:27:35+00:00"
+            "time": "2019-09-12T13:19:14+00:00"
         },
         {
             "name": "itsoneiota/count",
-            "version": "1.0.0",
+            "version": "2.0.2",
             "source": {
                 "type": "git",
-                "url": "https://github.com/itsoneiota/count.git",
-                "reference": "1eb567305193203b4fb02c1afa54cec2fb14c686"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/itsoneiota/count/zipball/1eb567305193203b4fb02c1afa54cec2fb14c686",
-                "reference": "1eb567305193203b4fb02c1afa54cec2fb14c686",
-                "shasum": ""
+                "url": "https://github.com/itsoneiota/count",
+                "reference": "857e43cc93d0f0569606a04a84d017ba34b754fa"
             },
             "require": {
-                "php": ">=5.4"
+                "php": ">=7.0"
             },
             "require-dev": {
-                "phpunit/phpunit": "4.*"
+                "phpunit/phpunit": "^7.3.0"
             },
             "type": "library",
             "autoload": {
@@ -119,8 +106,7 @@
                     "itsoneiota\\count\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
-            "time": "2016-09-09T13:13:40+00:00"
+            "time": "2019-09-12T11:12:48+00:00"
         },
         {
             "name": "predis/predis",
@@ -1320,9 +1306,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "itsoneiota/cache": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

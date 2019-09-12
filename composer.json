@@ -10,12 +10,23 @@
 			"email": "ross.mcfarlane@itsoneiota.com"
 		}
 	],
+	"repositories": [
+		{
+			"type": "git",
+			"url": "https://github.com/itsoneiota/count"
+		},
+		{
+			"type": "git",
+			"url": "https://github.com/itsoneiota/cache"
+		}
+
+	],
 	"license":"proprietary",
 	"require":{
 		"php":">=5.5",
-		"itsoneiota/cache": "*@dev",
+		"itsoneiota/cache": "1.9",
 		"psr/log": "^1.0",
-		"itsoneiota/count": ">=1.0.0"
+		"itsoneiota/count": "2.0.2"
 	},
 	"require-dev":{
 		"phpunit/phpunit": "*"
