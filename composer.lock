@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "355b69d9a2e93400b31a23516e44e1ad",
+    "content-hash": "e6c150ad809eb64db04c2952088af250",
     "packages": [
         {
             "name": "cheprasov/php-redis-client",
@@ -97,11 +97,11 @@
         },
         {
             "name": "itsoneiota/cache",
-            "version": "1.10",
+            "version": "1.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/itsoneiota/cache",
-                "reference": "1211e806ee9de310f414fca6020b5a234d5b512b"
+                "reference": "4fedeb043117f4962c0fc2b81ee3cb5d0dbdb183"
             },
             "require": {
                 "cheprasov/php-redis-client": "1.7.2",
@@ -133,7 +133,7 @@
             "keywords": [
                 "cache"
             ],
-            "time": "2019-10-24T10:00:47+00:00"
+            "time": "2019-10-24T14:45:23+00:00"
         },
         {
             "name": "itsoneiota/count",
