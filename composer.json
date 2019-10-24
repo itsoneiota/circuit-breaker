@@ -24,7 +24,7 @@
 	"license":"proprietary",
 	"require":{
 		"php":">=5.5",
-		"itsoneiota/cache": "1.9",
+		"itsoneiota/cache": "1.10",
 		"psr/log": "^1.0",
 		"itsoneiota/count": "2.0.2"
 	},
